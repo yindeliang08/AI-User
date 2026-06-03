@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>组织积分晾晒平台</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .data-table th { position: sticky; top: 0; z-index: 10; }
+        .data-table tbody tr:hover { background-color: #f8fafc; }
+        .org-card { transition: all 0.2s ease; cursor: pointer; }
+        .org-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .modal-overlay { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-xl font-bold text-gray-900">📊 组织积分晾晒平台</h1>
+                    <span id="dataStatus" class="text-sm text-gray-500">未导入数据</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="flex bg-gray-100 rounded-lg p-1">
+                        <button id="btnOverview" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-gray-900 shadow-sm" onclick="switchView('overview')">总览</button>
+                        <button id="btnDetail" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-500 hover:text-gray-700" onclick="switchView('detail')">详表</button>
+                    </div>
+                    <button onclick="showImportModal()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <span>导入Excel</span>
+                    </button>
+                    <button onclick="showGistModal()" class="px-3 py-1.5 bg-gray-800 text-white rounded-lg text-sm font-medium hover:bg-gray-900 transition-colors flex items-center space-x-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                        <span>云端同步</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Overview Page -->
+        <div id="overviewPage" class="fade-in">
+            <div class="mb-6 flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900">组织积分总览</h2>
+                    <p class="text-sm text-gray-500 mt-1">点击组织名称可查看该组织下所有用户明细</p>
+                </div>
+                <div class="text-sm text-gray-500">共 <span id="orgCount" class="font-semibold text-gray-900">0</span> 个组织</div>
+            </div>
+            <div id="summaryCards" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6"></div>
+            <div id="orgGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            <div id="overviewEmpty" class="text-center py-20">
+                <div class="text-6xl mb-4">📂</div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">暂无数据</h3>
+                <p class="text-gray-500 mb-4">请先导入Excel数据文件</p>
+                <button onclick="showImportModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">导入Excel</button>
+            </div>
+        </div>
+
+        <!-- Detail Page -->
+        <div id="detailPage" class="hidden fade-in">
+            <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900">积分明细</h2>
+                    <p class="text-sm text-gray-500 mt-1">查看所有用户的积分明细数据</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <select id="orgFilter" onchange="filterByOrg()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        <option value="">全部组织</option>
+                    </select>
+                    <input type="text" id="searchInput" placeholder="搜索姓名或工号..." oninput="searchTable()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-48">
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="overflow-x-auto max-h-[calc(100vh-240px)]">
+                    <table class="data-table w-full text-sm">
+                        <thead class="bg-gray-50 text-gray-700">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-semibold">序号</th>
+                                <th class="px-4 py-3 text-left font-semibold">组织名称</th>
+                                <th class="px-4 py-3 text-left font-semibold">用户姓名</th>
+                                <th class="px-4 py-3 text-left font-semibold">用户工号</th>
+                                <th class="px-4 py-3 text-right font-semibold">招小影</th>
+                                <th class="px-4 py-3 text-right font-semibold">爱写作</th>
+                                <th class="px-4 py-3 text-right font-semibold">会议助理</th>
+                                <th class="px-4 py-3 text-right font-semibold">工作清单</th>
+                                <th class="px-4 py-3 text-right font-semibold">人资小i</th>
+                                <th class="px-4 py-3 text-right font-semibold">商道积分</th>
+                                <th class="px-4 py-3 text-right font-semibold bg-blue-50">总积分</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailTableBody" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+                <div id="detailEmpty" class="hidden text-center py-12">
+                    <div class="text-4xl mb-2">🔍</div>
+                    <p class="text-gray-500">暂无匹配数据</p>
+                </div>
+            </div>
+            <div class="mt-4 text-sm text-gray-500 text-right">共 <span id="detailCount" class="font-semibold">0</span> 条记录</div>
+        </div>
+    </main>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-overlay">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-900">导入Excel数据</h3>
+                <button onclick="hideImportModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer" onclick="document.getElementById('fileInput').click()">
+                <div class="text-4xl mb-3">📁</div>
+                <p class="text-gray-700 font-medium mb-1">点击或拖拽上传Excel文件</p>
+                <p class="text-sm text-gray-500">支持 .xlsx, .xls 格式</p>
+                <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden" onchange="handleFileImport(event)">
+            </div>
+            <div id="importProgress" class="hidden mt-4">
+                <div class="flex items-center space-x-2">
+                    <div class="spinner"></div>
+                    <span class="text-sm text-gray-600">正在解析数据...</span>
+                </div>
+            </div>
+            <div id="importResult" class="hidden mt-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm">✅ 成功导入 <span id="importCount">0</span> 条数据</div>
+        </div>
+    </div>
+
+    <!-- Gist Sync Modal -->
+    <div id="gistModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-overlay">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-900">GitHub Gist 云端同步</h3>
+                <button onclick="hideGistModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">GitHub Personal Access Token</label>
+                    <input type="password" id="gistToken" placeholder="ghp_xxxxxxxxxxxx" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <p class="text-xs text-gray-500 mt-1">在 GitHub Settings → Developer settings → Personal access tokens 中生成</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Gist ID（可选，留空则创建新Gist）</label>
+                    <input type="text" id="gistId" placeholder="xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="saveToGist()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">💾 保存到云端</button>
+                    <button onclick="loadFromGist()" class="flex-1 px-4 py-2 bg-gray-800 text-white rounded-lg text-sm font-medium hover:bg-gray-900 transition-colors">📥 从云端读取</button>
+                </div>
+                <div id="gistResult" class="hidden p-3 rounded-lg text-sm"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let orgSummary = {};
+        let currentView = 'overview';
+
+        function switchView(view) {
+            currentView = view;
+            const overviewPage = document.getElementById('overviewPage');
+            const detailPage = document.getElementById('detailPage');
+            const btnOverview = document.getElementById('btnOverview');
+            const btnDetail = document.getElementById('btnDetail');
+            
+            if (view === 'overview') {
+                overviewPage.classList.remove('hidden');
+                detailPage.classList.add('hidden');
+                btnOverview.classList.add('bg-white', 'text-gray-900', 'shadow-sm');
+                btnOverview.classList.remove('text-gray-500');
+                btnDetail.classList.remove('bg-white', 'text-gray-900', 'shadow-sm');
+                btnDetail.classList.add('text-gray-500');
+            } else {
+                overviewPage.classList.add('hidden');
+                detailPage.classList.remove('hidden');
+                btnDetail.classList.add('bg-white', 'text-gray-900', 'shadow-sm');
+                btnDetail.classList.remove('text-gray-500');
+                btnOverview.classList.remove('bg-white', 'text-gray-900', 'shadow-sm');
+                btnOverview.classList.add('text-gray-500');
+            }
+        }
+
+        function showImportModal() {
+            document.getElementById('importModal').classList.remove('hidden');
+            document.getElementById('importProgress').classList.add('hidden');
+            document.getElementById('importResult').classList.add('hidden');
+        }
+
+        function hideImportModal() {
+            document.getElementById('importModal').classList.add('hidden');
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            document.getElementById('importProgress').classList.remove('hidden');
+            document.getElementById('importResult').classList.add('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    processImportedData(jsonData);
+                    document.getElementById('importProgress').classList.add('hidden');
+                    document.getElementById('importResult').classList.remove('hidden');
+                    document.getElementById('importCount').textContent = allData.length;
+                    setTimeout(() => {
+                        hideImportModal();
+                        renderOverview();
+                        renderDetailTable();
+                        updateOrgFilter();
+                    }, 800);
+                } catch (err) {
+                    alert('导入失败：' + err.message);
+                    document.getElementById('importProgress').classList.add('hidden');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processImportedData(rawData) {
+            if (rawData.length < 2) return;
+            const headers = rawData[0];
+            const dataRows = rawData.slice(1);
+            allData = dataRows.map((row, index) => {
+                const getValue = (idx) => {
+                    const val = row[idx];
+                    return val !== undefined ? (typeof val === 'number' ? val : parseFloat(val) || 0) : 0;
+                };
+                return {
+                    序号: row[0] || (index + 1),
+                    组织名称: String(row[1] || '').trim(),
+                    用户姓名: String(row[2] || '').trim(),
+                    用户工号: String(row[3] || '').trim(),
+                    招小影: getValue(4),
+                    爱写作: getValue(5),
+                    会议助理: getValue(6),
+                    工作清单: getValue(7),
+                    人资小i: getValue(8),
+                    商道积分: getValue(9),
+                    总积分: getValue(10)
+                };
+            }).filter(item => item.组织名称 && item.用户姓名);
+            calculateOrgSummary();
+            updateDataStatus();
+        }
+
+        function calculateOrgSummary() {
+            orgSummary = {};
+            allData.forEach(item => {
+                const org = item.组织名称;
+                if (!orgSummary[org]) {
+                    orgSummary[org] = { 组织名称: org, 用户数: 0, 招小影: 0, 爱写作: 0, 会议助理: 0, 工作清单: 0, 人资小i: 0, 商道积分: 0, 总积分: 0 };
+                }
+                orgSummary[org].用户数++;
+                orgSummary[org].招小影 += item.招小影;
+                orgSummary[org].爱写作 += item.爱写作;
+                orgSummary[org].会议助理 += item.会议助理;
+                orgSummary[org].工作清单 += item.工作清单;
+                orgSummary[org].人资小i += item.人资小i;
+                orgSummary[org].商道积分 += item.商道积分;
+                orgSummary[org].总积分 += item.总积分;
+            });
+        }
+
+        function updateDataStatus() {
+            const status = document.getElementById('dataStatus');
+            if (allData.length > 0) {
+                status.textContent = `已导入 ${allData.length} 条数据`;
+                status.classList.remove('text-gray-500');
+                status.classList.add('text-green-600');
+            }
+        }
+
+        function renderOverview() {
+            const orgGrid = document.getElementById('orgGrid');
+            const summaryCards = document.getElementById('summaryCards');
+            const emptyState = document.getElementById('overviewEmpty');
+            const orgCount = document.getElementById('orgCount');
+
+            if (allData.length === 0) {
+                orgGrid.innerHTML = '';
+                summaryCards.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            const orgs = Object.values(orgSummary).sort((a, b) => b.总积分 - a.总积分);
+            orgCount.textContent = orgs.length;
+
+            const products = ['招小影', '爱写作', '会议助理', '工作清单', '人资小i', '商道积分'];
+            const colors = ['bg-blue-50 text-blue-700', 'bg-green-50 text-green-700', 'bg-purple-50 text-purple-700', 'bg-orange-50 text-orange-700', 'bg-pink-50 text-pink-700', 'bg-indigo-50 text-indigo-700'];
+            
+            let totalSummary = products.map((prod, idx) => ({
+                name: prod, total: orgs.reduce((sum, org) => sum + org[prod], 0), color: colors[idx]
+            }));
+            totalSummary.push({ name: '总积分', total: orgs.reduce((sum, org) => sum + org.总积分, 0), color: 'bg-red-50 text-red-700' });
+
+            summaryCards.innerHTML = totalSummary.map(item => `
+                <div class="${item.color} rounded-xl p-4 border border-opacity-20 border-current">
+                    <div class="text-sm opacity-80">${item.name}</div>
+                    <div class="text-2xl font-bold mt-1">${item.total.toLocaleString()}</div>
+                </div>
+            `).join('');
+
+            orgGrid.innerHTML = orgs.map((org) => `
+                <div class="org-card bg-white rounded-xl shadow-sm border border-gray-200 p-5" onclick="viewOrgDetail('${org.组织名称}')">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-gray-900 text-lg">${org.组织名称}</h3>
+                            <p class="text-sm text-gray-500">${org.用户数} 位用户</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-blue-600">${org.总积分.toLocaleString()}</div>
+                            <div class="text-xs text-gray-500">总积分</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-gray-100">
+                        <div class="text-center"><div class="text-sm font-semibold text-gray-700">${org.招小影}</div><div class="text-xs text-gray-500">招小影</div></div>
+                        <div class="text-center"><div class="text-sm font-semibold text-gray-700">${org.爱写作}</div><div class="text-xs text-gray-500">爱写作</div></div>
+                        <div class="text-center"><div class="text-sm font-semibold text-gray-700">${org.会议助理}</div><div class="text-xs text-gray-500">会议助理</div></div>
+                        <div class="text-center"><div class="text-sm font-semibold text-gray-700">${org.工作清单}</div><div class="text-xs text-gray-500">工作清单</div></div>
+                        <div class="text-center"><div class="text-sm font-semibold text-gray-700">${org.人资小i}</div><div class="text-xs text-gray-500">人资小i</div></div>
+                        <div class="text-center"><div class="text-sm font-semibold text-gray-700">${org.商道积分}</div><div class="text-xs text-gray-500">商道积分</div></div>
+                    </div>
+                    <div class="mt-3 text-xs text-blue-600 font-medium flex items-center justify-center">点击查看明细 →</div>
+                </div>
+            `).join('');
+        }
+
+        function renderDetailTable(data = allData) {
+            const tbody = document.getElementById('detailTableBody');
+            const emptyState = document.getElementById('detailEmpty');
+            const countSpan = document.getElementById('detailCount');
+            countSpan.textContent = data.length;
+
+            if (data.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            tbody.innerHTML = data.map((item) => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-gray-500">${item.序号}</td>
+                    <td class="px-4 py-3 font-medium text-gray-900">${item.组织名称}</td>
+                    <td class="px-4 py-3 text-gray-700">${item.用户姓名}</td>
+                    <td class="px-4 py-3 text-gray-500 font-mono text-xs">${item.用户工号}</td>
+                    <td class="px-4 py-3 text-right text-gray-700">${item.招小影}</td>
+                    <td class="px-4 py-3 text-right text-gray-700">${item.爱写作}</td>
+                    <td class="px-4 py-3 text-right text-gray-700">${item.会议助理}</td>
+                    <td class="px-4 py-3 text-right text-gray-700">${item.工作清单}</td>
+                    <td class="px-4 py-3 text-right text-gray-700">${item.人资小i}</td>
+                    <td class="px-4 py-3 text-right text-gray-700">${item.商道积分}</td>
+                    <td class="px-4 py-3 text-right font-bold text-blue-600 bg-blue-50/50">${item.总积分}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateOrgFilter() {
+            const select = document.getElementById('orgFilter');
+            const orgs = [...new Set(allData.map(d => d.组织名称))].sort();
+            select.innerHTML = '<option value="">全部组织</option>' + orgs.map(org => `<option value="${org}">${org}</option>`).join('');
+        }
+
+        function filterByOrg() {
+            const org = document.getElementById('orgFilter').value;
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            let filtered = allData;
+            if (org) filtered = filtered.filter(d => d.组织名称 === org);
+            if (search) filtered = filtered.filter(d => d.用户姓名.toLowerCase().includes(search) || d.用户工号.toLowerCase().includes(search));
+            renderDetailTable(filtered);
+        }
+
+        function searchTable() {
+            filterByOrg();
+        }
+
+        function viewOrgDetail(orgName) {
+            document.getElementById('orgFilter').value = orgName;
+            switchView('detail');
+            filterByOrg();
+        }
+
+        function showGistModal() {
+            document.getElementById('gistModal').classList.remove('hidden');
+            document.getElementById('gistResult').classList.add('hidden');
+            const savedToken = localStorage.getItem('gistToken');
+            const savedGistId = localStorage.getItem('gistId');
+            if (savedToken) document.getElementById('gistToken').value = savedToken;
+            if (savedGistId) document.getElementById('gistId').value = savedGistId;
+        }
+
+        function hideGistModal() {
+            document.getElementById('gistModal').classList.add('hidden');
+        }
+
+        async function saveToGist() {
+            const token = document.getElementById('gistToken').value.trim();
+            let gistId = document.getElementById('gistId').value.trim();
+            if (!token) { showGistResult('error', '请输入 GitHub Token'); return; }
+            if (allData.length === 0) { showGistResult('error', '没有数据可保存，请先导入Excel'); return; }
+            localStorage.setItem('gistToken', token);
+            if (gistId) localStorage.setItem('gistId', gistId);
+
+            const gistData = {
+                description: '组织积分数据 - ' + new Date().toLocaleString('zh-CN'),
+                public: false,
+                files: { 'points-data.json': { content: JSON.stringify({ updatedAt: new Date().toISOString(), data: allData }, null, 2) } }
+            };
+
+            try {
+                let url, method;
+                if (gistId) { url = `https://api.github.com/gists/${gistId}`; method = 'PATCH'; }
+                else { url = 'https://api.github.com/gists'; method = 'POST'; }
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                    body: JSON.stringify(gistData)
+                });
+
+                if (!response.ok) { const err = await response.json(); throw new Error(err.message || '保存失败'); }
+                const result = await response.json();
+                document.getElementById('gistId').value = result.id;
+                localStorage.setItem('gistId', result.id);
+                showGistResult('success', `✅ 保存成功！Gist ID: ${result.id}`);
+            } catch (err) { showGistResult('error', '❌ 保存失败: ' + err.message); }
+        }
+
+        async function loadFromGist() {
+            const token = document.getElementById('gistToken').value.trim();
+            const gistId = document.getElementById('gistId').value.trim();
+            if (!gistId) { showGistResult('error', '请输入 Gist ID'); return; }
+            localStorage.setItem('gistToken', token);
+            localStorage.setItem('gistId', gistId);
+
+            try {
+                const headers = { 'Accept': 'application/vnd.github.v3+json' };
+                if (token) headers['Authorization'] = `token ${token}`;
+
+                const response = await fetch(`https://api.github.com/gists/${gistId}`, { headers });
+                if (!response.ok) { const err = await response.json(); throw new Error(err.message || '读取失败'); }
+
+                const result = await response.json();
+                const fileContent = result.files['points-data.json']?.content;
+                if (!fileContent) throw new Error('Gist 中没有找到数据文件');
+
+                const parsed = JSON.parse(fileContent);
+                allData = parsed.data || [];
+                calculateOrgSummary();
+                updateDataStatus();
+                renderOverview();
+                renderDetailTable();
+                updateOrgFilter();
+                showGistResult('success', `✅ 读取成功！共 ${allData.length} 条数据`);
+            } catch (err) { showGistResult('error', '❌ 读取失败: ' + err.message); }
+        }
+
+        function showGistResult(type, message) {
+            const resultDiv = document.getElementById('gistResult');
+            resultDiv.classList.remove('hidden', 'bg-green-50', 'text-green-700', 'bg-red-50', 'text-red-700');
+            resultDiv.classList.add(type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700');
+            resultDiv.textContent = message;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedData = localStorage.getItem('pointsData');
+            if (savedData) {
+                try {
+                    allData = JSON.parse(savedData);
+                    calculateOrgSummary();
+                    updateDataStatus();
+                    renderOverview();
+                    renderDetailTable();
+                    updateOrgFilter();
+                } catch (e) { console.error('Failed to load saved data:', e); }
+            }
+            window.addEventListener('beforeunload', function() {
+                if (allData.length > 0) localStorage.setItem('pointsData', JSON.stringify(allData));
+            });
+        });
+
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && (files[0].name.endsWith('.xlsx') || files[0].name.endsWith('.xls'))) {
+                handleFileImport({ target: { files: files } });
+            }
+        });
+    </script>
+</body>
+</html>
