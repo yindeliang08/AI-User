@@ -246,17 +246,18 @@
                     return val !== undefined ? (typeof val === 'number' ? val : parseFloat(val) || 0) : 0;
                 };
                 return {
-                    序号: row[0] || (index + 1),
-                    组织名称: String(row[1] || '').trim(),
-                    用户姓名: String(row[2] || '').trim(),
-                    用户工号: String(row[3] || '').trim(),
-                    招小影: getValue(4),
-                    爱写作: getValue(5),
-                    会议助理: getValue(6),
-                    工作清单: getValue(7),
-                    人资小i: getValue(8),
-                    商道积分: getValue(9),
-                    总积分: getValue(10)
+                    序号: index + 1,
+                    用户工号: String(row[0] || '').trim(),
+                    用户姓名: String(row[1] || '').trim(),
+                    组织名称: String(row[2] || '').trim(),
+                    组织全链路名称: String(row[3] || '').trim(),
+                    总积分: getValue(4),
+                    招小影: getValue(5),
+                    爱写作: getValue(6),
+                    会议助理: getValue(7),
+                    工作清单: getValue(8),
+                    人资小i: getValue(9),
+                    商道积分: getValue(10)
                 };
             }).filter(item => item.组织名称 && item.用户姓名);
             calculateOrgSummary();
@@ -307,20 +308,8 @@
             const orgs = Object.values(orgSummary).sort((a, b) => b.总积分 - a.总积分);
             orgCount.textContent = orgs.length;
 
-            const products = ['招小影', '爱写作', '会议助理', '工作清单', '人资小i', '商道积分'];
-            const colors = ['bg-blue-50 text-blue-700', 'bg-green-50 text-green-700', 'bg-purple-50 text-purple-700', 'bg-orange-50 text-orange-700', 'bg-pink-50 text-pink-700', 'bg-indigo-50 text-indigo-700'];
-            
-            let totalSummary = products.map((prod, idx) => ({
-                name: prod, total: orgs.reduce((sum, org) => sum + org[prod], 0), color: colors[idx]
-            }));
-            totalSummary.push({ name: '总积分', total: orgs.reduce((sum, org) => sum + org.总积分, 0), color: 'bg-red-50 text-red-700' });
-
-            summaryCards.innerHTML = totalSummary.map(item => `
-                <div class="${item.color} rounded-xl p-4 border border-opacity-20 border-current">
-                    <div class="text-sm opacity-80">${item.name}</div>
-                    <div class="text-2xl font-bold mt-1">${item.total.toLocaleString()}</div>
-                </div>
-            `).join('');
+            // 隐藏汇总卡片区域
+            summaryCards.innerHTML = '';
 
             orgGrid.innerHTML = orgs.map((org) => `
                 <div class="org-card bg-white rounded-xl shadow-sm border border-gray-200 p-5" onclick="viewOrgDetail('${org.组织名称}')">
