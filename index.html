@@ -847,7 +847,8 @@
             try {
                 showSupabaseResult('error', '⏳ 正在保存...');
                 
-                const { data, error } = await client
+                // 先尝试保存完整数据（包含 base_data）
+                let { data, error } = await client
                     .from('points_data')
                     .upsert({
                         id: 1,
@@ -857,9 +858,20 @@
                     }, { onConflict: 'id', returning: 'minimal' });
 
                 if (error) {
-                    console.error('Supabase error:', error);
-                    throw new Error(error.message || '未知错误');
+                    console.warn('Failed with base_data, trying without...');
+                    // 如果失败，尝试只保存 data
+                    const { data: dataOnly, error: error2 } = await client
+                        .from('points_data')
+                        .upsert({
+                            id: 1,
+                            updated_at: new Date().toISOString(),
+                            data: allData
+                        }, { onConflict: 'id', returning: 'minimal' });
+                    
+                    if (error2) throw error2;
+                    data = dataOnly;
                 }
+
                 showSupabaseResult('success', '✅ 保存成功！数据已同步到云端');
                 console.log('Save successful:', data);
             } catch (err) {
@@ -879,12 +891,34 @@
                     .eq('id', 1)
                     .single();
 
-                if (error) throw error;
+                if (error) {
+                    console.warn('Failed to load both data and base_data, trying just data...');
+                    // 如果失败，尝试只读取 data
+                    const { data: dataOnly, error: error2 } = await client
+                        .from('points_data')
+                        .select('data')
+                        .eq('id', 1)
+                        .single();
+                    
+                    if (error2) throw error2;
+                    
+                    if (dataOnly && dataOnly.data) {
+                        allData = dataOnly.data;
+                        calculateOrgSummary();
+                        updateDataStatus();
+                        renderOverview();
+                        renderDetailTable();
+                        updateOrgFilter();
+                        showSupabaseResult('success', '✅ 读取成功！共 ' + allData.length + ' 条数据');
+                        return;
+                    }
+                    throw error;
+                }
 
                 if (data && data.data) {
                     allData = data.data;
                     
-                    // 恢复基础数据
+                    // 恢复基础数据（兼容旧数据格式）
                     if (data.base_data && typeof data.base_data === 'object') {
                         baseUserData = data.base_data;
                         console.log('Loaded base user data from cloud:', Object.keys(baseUserData).length, 'records');
@@ -906,6 +940,7 @@
                     showSupabaseResult('error', '❌ 未找到数据');
                 }
             } catch (err) {
+                console.error('Load error:', err);
                 showSupabaseResult('error', '❌ 读取失败: ' + err.message);
             }
         }
