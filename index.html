@@ -327,6 +327,8 @@
             });
             
             if (importedCount > 0) {
+                // 保存到本地存储
+                localStorage.setItem('baseUserData', JSON.stringify(baseUserData));
                 showBaseDataResult('success', '✅ 成功导入 ' + importedCount + ' 条基础数据');
                 const baseDataStatus = document.getElementById('baseDataStatus');
                 const baseDataCount = document.getElementById('baseDataCount');
@@ -450,7 +452,7 @@
             allData.forEach(item => {
                 const org = item.组织名称;
                 if (!orgSummary[org]) {
-                    orgSummary[org] = { 组织名称: org, 用户数: 0, 招小影: 0, 爱写作: 0, 会议助理: 0, 工作清单: 0, 人资小i: 0, 商道积分: 0, 总积分: 0 };
+                    orgSummary[org] = { 组织名称: org, 用户数: 0, 组织总人数: 0, 招小影: 0, 爱写作: 0, 会议助理: 0, 工作清单: 0, 人资小i: 0, 商道积分: 0, 总积分: 0 };
                 }
                 orgSummary[org].用户数++;
                 orgSummary[org].招小影 += item.招小影;
@@ -461,6 +463,53 @@
                 orgSummary[org].商道积分 += item.商道积分;
                 orgSummary[org].总积分 += item.总积分;
             });
+            
+            // 根据基础数据获取每个组织的总人数
+            const orgTotalUsers = {};
+            Object.values(baseUserData).forEach(user => {
+                const org = user.组织名称;
+                orgTotalUsers[org] = (orgTotalUsers[org] || 0) + 1;
+            });
+            
+            // 计算均值
+            Object.keys(orgSummary).forEach(org => {
+                const totalUsers = orgTotalUsers[org] || orgSummary[org].用户数;
+                orgSummary[org].组织总人数 = totalUsers;
+                orgSummary[org].招小影 = Math.round(orgSummary[org].招小影 / totalUsers * 100) / 100;
+                orgSummary[org].爱写作 = Math.round(orgSummary[org].爱写作 / totalUsers * 100) / 100;
+                orgSummary[org].会议助理 = Math.round(orgSummary[org].会议助理 / totalUsers * 100) / 100;
+                orgSummary[org].工作清单 = Math.round(orgSummary[org].工作清单 / totalUsers * 100) / 100;
+                orgSummary[org].人资小i = Math.round(orgSummary[org].人资小i / totalUsers * 100) / 100;
+                orgSummary[org].商道积分 = Math.round(orgSummary[org].商道积分 / totalUsers * 100) / 100;
+                orgSummary[org].总积分 = Math.round(orgSummary[org].总积分 / totalUsers * 100) / 100;
+            });
+        }
+        
+        function calculateCompanyAverage() {
+            const totalUsers = Object.keys(baseUserData).length || allData.length;
+            if (totalUsers === 0) return null;
+            
+            let totals = { 招小影: 0, 爱写作: 0, 会议助理: 0, 工作清单: 0, 人资小i: 0, 商道积分: 0, 总积分: 0 };
+            allData.forEach(item => {
+                totals.招小影 += item.招小影;
+                totals.爱写作 += item.爱写作;
+                totals.会议助理 += item.会议助理;
+                totals.工作清单 += item.工作清单;
+                totals.人资小i += item.人资小i;
+                totals.商道积分 += item.商道积分;
+                totals.总积分 += item.总积分;
+            });
+            
+            return {
+                总人数: totalUsers,
+                招小影: Math.round(totals.招小影 / totalUsers * 100) / 100,
+                爱写作: Math.round(totals.爱写作 / totalUsers * 100) / 100,
+                会议助理: Math.round(totals.会议助理 / totalUsers * 100) / 100,
+                工作清单: Math.round(totals.工作清单 / totalUsers * 100) / 100,
+                人资小i: Math.round(totals.人资小i / totalUsers * 100) / 100,
+                商道积分: Math.round(totals.商道积分 / totalUsers * 100) / 100,
+                总积分: Math.round(totals.总积分 / totalUsers * 100) / 100
+            };
         }
 
         function updateDataStatus() {
@@ -489,11 +538,65 @@
             const orgs = Object.values(orgSummary).sort((a, b) => b.总积分 - a.总积分);
             orgCount.textContent = orgs.length;
 
-            // 隐藏汇总卡片区域
-            summaryCards.innerHTML = '';
+            const companyAvg = calculateCompanyAverage();
+            
+            let content = '';
+            
+            if (companyAvg) {
+                content += `
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-lg p-4 mb-6">
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-shrink-0">
+                                <div class="flex items-center justify-center w-12 h-12 bg-white/20 rounded-lg">
+                                    <span class="text-xl font-bold text-white">🏢</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white text-lg">深圳公司完成情况均值</h3>
+                                <p class="text-white/80 text-sm">基于 ${companyAvg.总人数} 位员工计算</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-6 mt-4">
+                            <div class="flex items-center space-x-4 text-sm">
+                                <div class="text-center min-w-[60px]">
+                                    <div class="font-semibold text-white">${companyAvg.招小影}</div>
+                                    <div class="text-xs text-white/70">招小影</div>
+                                </div>
+                                <div class="text-center min-w-[60px]">
+                                    <div class="font-semibold text-white">${companyAvg.爱写作}</div>
+                                    <div class="text-xs text-white/70">爱写作</div>
+                                </div>
+                                <div class="text-center min-w-[60px]">
+                                    <div class="font-semibold text-white">${companyAvg.会议助理}</div>
+                                    <div class="text-xs text-white/70">会议助理</div>
+                                </div>
+                                <div class="text-center min-w-[60px]">
+                                    <div class="font-semibold text-white">${companyAvg.工作清单}</div>
+                                    <div class="text-xs text-white/70">工作清单</div>
+                                </div>
+                                <div class="text-center min-w-[60px]">
+                                    <div class="font-semibold text-white">${companyAvg.人资小i}</div>
+                                    <div class="text-xs text-white/70">人资小i</div>
+                                </div>
+                                <div class="text-center min-w-[60px]">
+                                    <div class="font-semibold text-white">${companyAvg.商道积分}</div>
+                                    <div class="text-xs text-white/70">商道积分</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3 pl-6 border-l border-white/20">
+                                <div class="text-right">
+                                    <div class="text-2xl font-bold text-white">${companyAvg.总积分.toLocaleString()}</div>
+                                    <div class="text-xs text-white/70">平均总积分</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
 
-            orgGrid.className = 'space-y-3';
-            orgGrid.innerHTML = orgs.map((org, index) => `
+            content += orgs.map((org, index) => `
                 <div class="org-card bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between" onclick="viewOrgDetail('${org.组织名称}')">
                     <div class="flex items-center space-x-4">
                         <div class="flex-shrink-0">
@@ -503,7 +606,7 @@
                         </div>
                         <div>
                             <h3 class="font-bold text-gray-900 text-lg">${org.组织名称}</h3>
-                            <p class="text-sm text-gray-500">${org.用户数} 位用户</p>
+                            <p class="text-sm text-gray-500">${org.组织总人数} 位员工（${org.用户数} 人有数据）</p>
                         </div>
                     </div>
                     
@@ -538,13 +641,16 @@
                         <div class="flex items-center space-x-3 pl-6 border-l border-gray-200">
                             <div class="text-right">
                                 <div class="text-2xl font-bold text-blue-600">${org.总积分.toLocaleString()}</div>
-                                <div class="text-xs text-gray-500">总积分</div>
+                                <div class="text-xs text-gray-500">人均积分</div>
                             </div>
                             <div class="text-blue-600 text-xl">→</div>
                         </div>
                     </div>
                 </div>
             `).join('');
+
+            orgGrid.className = 'space-y-3';
+            orgGrid.innerHTML = content;
         }
 
         function renderDetailTable(data = allData) {
@@ -697,6 +803,17 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // 先加载基础数据
+            const savedBaseData = localStorage.getItem('baseUserData');
+            if (savedBaseData) {
+                try {
+                    baseUserData = JSON.parse(savedBaseData);
+                    console.log('Loaded base user data:', Object.keys(baseUserData).length, 'records');
+                } catch (e) {
+                    console.error('Failed to load base user data:', e);
+                }
+            }
+
             // 显示正在同步提示
             const statusEl = document.getElementById('dataStatus');
             statusEl.textContent = '正在同步云端数据...';
@@ -726,6 +843,7 @@
             // 保存到本地作为备份
             window.addEventListener('beforeunload', function() {
                 if (allData.length > 0) localStorage.setItem('pointsData', JSON.stringify(allData));
+                if (Object.keys(baseUserData).length > 0) localStorage.setItem('baseUserData', JSON.stringify(baseUserData));
             });
         });
 
