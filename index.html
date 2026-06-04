@@ -14,7 +14,8 @@
         ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .data-table th { position: sticky; top: 0; z-index: 10; }
+        .data-table { position: relative; }
+        .data-table thead { position: sticky; top: 88px; z-index: 20; background-color: #f9fafb; }
         .data-table tbody tr:hover { background-color: #f8fafc; }
         .org-card { transition: all 0.2s ease; cursor: pointer; }
         .org-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
@@ -98,9 +99,9 @@
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto" style="max-height: calc(100vh - 280px); overflow-y: auto;">
                     <table class="data-table w-full text-sm">
-                        <thead class="sticky top-[88px] bg-gray-50 text-gray-700 z-10">
+                        <thead class="sticky top-0 bg-gray-50 text-gray-700 z-10">
                             <tr>
                                 <th class="px-4 py-3 text-left font-semibold">序号</th>
                                 <th class="px-4 py-3 text-left font-semibold">组织名称</th>
@@ -729,16 +730,18 @@
             });
         }
 
-        function renderDetailTable(data = allData) {
+        function renderDetailTable(data = null) {
             const tbody = document.getElementById('detailTableBody');
             const emptyState = document.getElementById('detailEmpty');
             const countSpan = document.getElementById('detailCount');
             
             let displayData;
-            if (Object.keys(baseUserData).length > 0) {
+            if (data !== null) {
+                displayData = data;
+            } else if (Object.keys(baseUserData).length > 0) {
                 displayData = getCompleteUserData();
             } else {
-                displayData = [...data].sort((a, b) => {
+                displayData = [...allData].sort((a, b) => {
                     if (a.组织名称 !== b.组织名称) {
                         return a.组织名称.localeCompare(b.组织名称);
                     }
@@ -836,7 +839,11 @@
         function initSupabase() {
             // 使用硬编码的Supabase配置
             if (!SUPABASE_URL || !SUPABASE_KEY) return null;
-            return window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            if (window.SupabaseClient) {
+                return new window.SupabaseClient(SUPABASE_URL, SUPABASE_KEY);
+            }
+            console.error('SupabaseClient not loaded');
+            return null;
         }
 
         async function saveToSupabase() {
