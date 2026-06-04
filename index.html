@@ -474,6 +474,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // 先尝试从本地存储加载数据
             const savedData = localStorage.getItem('pointsData');
             if (savedData) {
                 try {
@@ -485,6 +486,36 @@
                     updateOrgFilter();
                 } catch (e) { console.error('Failed to load saved data:', e); }
             }
+
+            // 检查是否有Supabase配置，如果有则自动加载云端数据
+            const supabaseUrl = localStorage.getItem('supabaseUrl');
+            const supabaseKey = localStorage.getItem('supabaseKey');
+            
+            if (supabaseUrl && supabaseKey) {
+                // 显示正在同步提示
+                const statusEl = document.getElementById('dataStatus');
+                const originalText = statusEl.textContent;
+                statusEl.textContent = '正在同步云端数据...';
+                statusEl.classList.remove('text-gray-500');
+                statusEl.classList.add('text-blue-600');
+
+                // 自动加载云端数据
+                if (supabaseUrl) document.getElementById('supabaseUrl').value = supabaseUrl;
+                if (supabaseKey) document.getElementById('supabaseKey').value = supabaseKey;
+
+                loadFromSupabase().then(() => {
+                    // 同步完成后恢复状态显示
+                    if (allData.length > 0) {
+                        statusEl.textContent = '已导入 ' + allData.length + ' 条数据 (云端同步)';
+                    } else {
+                        statusEl.textContent = originalText;
+                    }
+                }).catch(() => {
+                    // 如果云端加载失败，恢复本地数据状态
+                    statusEl.textContent = '已导入 ' + allData.length + ' 条数据 (本地)';
+                });
+            }
+
             window.addEventListener('beforeunload', function() {
                 if (allData.length > 0) localStorage.setItem('pointsData', JSON.stringify(allData));
             });
