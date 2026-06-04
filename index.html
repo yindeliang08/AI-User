@@ -37,6 +37,10 @@
                         <button id="btnOverview" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-gray-900 shadow-sm" onclick="switchView('overview')">总览</button>
                         <button id="btnDetail" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-500 hover:text-gray-700" onclick="switchView('detail')">详表</button>
                     </div>
+                    <button onclick="showBaseDataModal()" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center space-x-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span>基础数据</span>
+                    </button>
                     <button onclick="showImportModal()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                         <span>导入Excel</span>
@@ -114,6 +118,35 @@
         </div>
     </main>
 
+    <!-- Base Data Import Modal -->
+    <div id="baseDataModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-overlay">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-900">导入基础人员数据</h3>
+                <button onclick="hideBaseDataModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="border-2 border-dashed border-purple-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors cursor-pointer" onclick="document.getElementById('baseDataFileInput').click()">
+                <div class="text-4xl mb-3">👥</div>
+                <p class="text-gray-700 font-medium mb-1">点击或拖拽上传基础人员数据</p>
+                <p class="text-sm text-gray-500">支持 .xlsx, .xls 格式</p>
+                <p class="text-xs text-purple-600 mt-2">包含用户工号和组织名称的对照表</p>
+                <input type="file" id="baseDataFileInput" accept=".xlsx,.xls" class="hidden" onchange="handleBaseDataImport(event)">
+            </div>
+            <div id="baseDataProgress" class="hidden mt-4">
+                <div class="flex items-center space-x-2">
+                    <div class="spinner"></div>
+                    <span class="text-sm text-gray-600">正在解析数据...</span>
+                </div>
+            </div>
+            <div id="baseDataResult" class="hidden mt-4 p-3 rounded-lg text-sm"></div>
+            <div id="baseDataStatus" class="hidden mt-3 p-3 bg-purple-50 text-purple-700 rounded-lg text-sm">
+                <p>已导入 <span id="baseDataCount">0</span> 条基础数据</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Import Modal -->
     <div id="importModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-overlay">
         <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
@@ -164,6 +197,7 @@
 
     <script>
         let allData = [];
+        let baseUserData = {}; // 基础人员数据，工号 -> {姓名, 组织名称}
         let orgSummary = {};
         let currentView = 'overview';
 
@@ -203,6 +237,144 @@
 
         function hideImportModal() {
             document.getElementById('importModal').classList.add('hidden');
+        }
+
+        function showBaseDataModal() {
+            document.getElementById('baseDataModal').classList.remove('hidden');
+            document.getElementById('baseDataResult').classList.add('hidden');
+            document.getElementById('baseDataResult').classList.remove('bg-green-50', 'text-green-700', 'bg-red-50', 'text-red-700');
+            
+            // 显示已导入的基础数据状态
+            const baseDataStatus = document.getElementById('baseDataStatus');
+            const baseDataCount = document.getElementById('baseDataCount');
+            const count = Object.keys(baseUserData).length;
+            if (count > 0) {
+                baseDataStatus.classList.remove('hidden');
+                baseDataCount.textContent = count;
+            } else {
+                baseDataStatus.classList.add('hidden');
+            }
+        }
+
+        function hideBaseDataModal() {
+            document.getElementById('baseDataModal').classList.add('hidden');
+        }
+
+        function handleBaseDataImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            document.getElementById('baseDataProgress').classList.remove('hidden');
+            document.getElementById('baseDataResult').classList.add('hidden');
+            document.getElementById('baseDataResult').classList.remove('bg-green-50', 'text-green-700', 'bg-red-50', 'text-red-700');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    processBaseDataImport(jsonData);
+                    document.getElementById('baseDataProgress').classList.add('hidden');
+                } catch (err) {
+                    showBaseDataResult('error', '导入失败：' + err.message);
+                    document.getElementById('baseDataProgress').classList.add('hidden');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processBaseDataImport(rawData) {
+            if (rawData.length < 2) {
+                showBaseDataResult('error', '数据格式不正确，请检查文件内容');
+                return;
+            }
+            
+            const headers = rawData[0];
+            const dataRows = rawData.slice(1);
+            baseUserData = {};
+            
+            let userCodeIndex = -1;
+            let userNameIndex = -1;
+            let orgNameIndex = -1;
+            
+            // 查找列索引（兼容中文列名）
+            headers.forEach((header, index) => {
+                const h = String(header || '').trim();
+                if (h.includes('工号') || h.includes('用户工号')) userCodeIndex = index;
+                if (h.includes('姓名') || h.includes('用户姓名')) userNameIndex = index;
+                if (h.includes('组织') && !h.includes('全链路')) orgNameIndex = index;
+            });
+            
+            if (userCodeIndex === -1 || orgNameIndex === -1) {
+                showBaseDataResult('error', '未找到必要的列（工号、组织名称）');
+                return;
+            }
+            
+            let importedCount = 0;
+            dataRows.forEach(row => {
+                const userCode = String(row[userCodeIndex] || '').trim();
+                const userName = userNameIndex !== -1 ? String(row[userNameIndex] || '').trim() : '';
+                const orgName = String(row[orgNameIndex] || '').trim();
+                
+                if (userCode && orgName) {
+                    baseUserData[userCode] = {
+                        姓名: userName,
+                        组织名称: orgName
+                    };
+                    importedCount++;
+                }
+            });
+            
+            if (importedCount > 0) {
+                showBaseDataResult('success', '✅ 成功导入 ' + importedCount + ' 条基础数据');
+                const baseDataStatus = document.getElementById('baseDataStatus');
+                const baseDataCount = document.getElementById('baseDataCount');
+                baseDataStatus.classList.remove('hidden');
+                baseDataCount.textContent = importedCount;
+                
+                // 如果已有Excel数据，重新处理
+                if (allData.length > 0) {
+                    processDataWithBaseData();
+                }
+            } else {
+                showBaseDataResult('error', '未找到有效数据，请检查文件格式');
+            }
+        }
+
+        function showBaseDataResult(type, message) {
+            const resultDiv = document.getElementById('baseDataResult');
+            resultDiv.classList.remove('hidden', 'bg-green-50', 'text-green-700', 'bg-red-50', 'text-red-700');
+            if (type === 'success') {
+                resultDiv.classList.add('bg-green-50', 'text-green-700');
+            } else {
+                resultDiv.classList.add('bg-red-50', 'text-red-700');
+            }
+            resultDiv.textContent = message;
+        }
+
+        function processDataWithBaseData() {
+            // 根据基础数据修正和过滤
+            allData = allData.filter(item => {
+                const userCode = item.用户工号;
+                // 只保留在基础数据中存在的用户
+                if (!baseUserData[userCode]) {
+                    return false;
+                }
+                // 用基础数据修正组织名称
+                item.组织名称 = baseUserData[userCode].组织名称;
+                // 如果基础数据中有姓名，也用基础数据修正
+                if (baseUserData[userCode].姓名) {
+                    item.用户姓名 = baseUserData[userCode].姓名;
+                }
+                return true;
+            });
+            
+            calculateOrgSummary();
+            updateDataStatus();
+            renderOverview();
+            renderDetailTable();
+            updateOrgFilter();
         }
 
         function handleFileImport(event) {
@@ -260,8 +432,17 @@
                     商道积分: getValue(10)
                 };
             }).filter(item => item.组织名称 && item.用户姓名);
-            calculateOrgSummary();
-            updateDataStatus();
+            
+            // 如果有基础数据，应用过滤和修正
+            if (Object.keys(baseUserData).length > 0) {
+                processDataWithBaseData();
+            } else {
+                calculateOrgSummary();
+                updateDataStatus();
+                renderOverview();
+                renderDetailTable();
+                updateOrgFilter();
+            }
         }
 
         function calculateOrgSummary() {
@@ -479,12 +660,19 @@
 
                 if (data && data.data) {
                     allData = data.data;
-                    calculateOrgSummary();
-                    updateDataStatus();
-                    renderOverview();
-                    renderDetailTable();
-                    updateOrgFilter();
-                    showSupabaseResult('success', '✅ 读取成功！共 ' + allData.length + ' 条数据');
+                    
+                    // 如果有基础数据，应用过滤和修正
+                    if (Object.keys(baseUserData).length > 0) {
+                        processDataWithBaseData();
+                        showSupabaseResult('success', '✅ 读取成功！共 ' + allData.length + ' 条数据（已应用基础数据过滤）');
+                    } else {
+                        calculateOrgSummary();
+                        updateDataStatus();
+                        renderOverview();
+                        renderDetailTable();
+                        updateOrgFilter();
+                        showSupabaseResult('success', '✅ 读取成功！共 ' + allData.length + ' 条数据');
+                    }
                 } else {
                     showSupabaseResult('error', '❌ 未找到数据');
                 }
