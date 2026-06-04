@@ -14,8 +14,8 @@
         ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .data-table { position: relative; }
-        .data-table thead { position: sticky; top: 88px; z-index: 20; background-color: #f9fafb; }
+        .data-table { position: relative; table-layout: fixed; }
+        .data-table th, .data-table td { white-space: nowrap; }
         .data-table tbody tr:hover { background-color: #f8fafc; }
         .org-card { transition: all 0.2s ease; cursor: pointer; }
         .org-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
@@ -103,18 +103,18 @@
                     <table class="data-table w-full text-sm">
                         <thead class="sticky top-0 bg-gray-50 text-gray-700 z-10">
                             <tr>
-                                <th class="px-4 py-3 text-left font-semibold">序号</th>
-                                <th class="px-4 py-3 text-left font-semibold">组织名称</th>
-                                <th class="px-4 py-3 text-left font-semibold">用户姓名</th>
-                                <th class="px-4 py-3 text-left font-semibold">用户工号</th>
-                                <th class="px-4 py-3 text-right font-semibold">招小影</th>
-                                <th class="px-4 py-3 text-right font-semibold">爱写作</th>
-                                <th class="px-4 py-3 text-right font-semibold">会议助理</th>
-                                <th class="px-4 py-3 text-right font-semibold">工作清单</th>
-                                <th class="px-4 py-3 text-right font-semibold">人资小i</th>
-                                <th class="px-4 py-3 text-right font-semibold">商道积分</th>
-                                <th class="px-4 py-3 text-right font-semibold bg-blue-50">总积分</th>
-                                <th class="px-4 py-3 text-center font-semibold">完成覆盖</th>
+                                <th class="px-4 py-3 text-left font-semibold" style="width: 80px;">序号</th>
+                                <th class="px-4 py-3 text-left font-semibold" style="width: 180px;">组织名称</th>
+                                <th class="px-4 py-3 text-left font-semibold" style="width: 100px;">用户姓名</th>
+                                <th class="px-4 py-3 text-left font-semibold" style="width: 120px;">用户工号</th>
+                                <th class="px-4 py-3 text-right font-semibold" style="width: 80px;">招小影</th>
+                                <th class="px-4 py-3 text-right font-semibold" style="width: 80px;">爱写作</th>
+                                <th class="px-4 py-3 text-right font-semibold" style="width: 80px;">会议助理</th>
+                                <th class="px-4 py-3 text-right font-semibold" style="width: 80px;">工作清单</th>
+                                <th class="px-4 py-3 text-right font-semibold" style="width: 80px;">人资小i</th>
+                                <th class="px-4 py-3 text-right font-semibold" style="width: 80px;">商道积分</th>
+                                <th class="px-4 py-3 text-right font-semibold bg-blue-50" style="width: 80px;">总积分</th>
+                                <th class="px-4 py-3 text-center font-semibold" style="width: 80px;">完成覆盖</th>
                             </tr>
                         </thead>
                         <tbody id="detailTableBody" class="divide-y divide-gray-100"></tbody>
@@ -772,18 +772,18 @@
 
                 return `
                     <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-4 py-3 text-gray-500">${orgCounter[org]}</td>
-                        <td class="px-4 py-3 font-medium text-gray-900">${item.组织名称}</td>
-                        <td class="px-4 py-3 text-gray-700">${item.用户姓名}</td>
-                        <td class="px-4 py-3 text-gray-500 font-mono text-xs">${item.用户工号}</td>
-                        <td class="px-4 py-3 text-right text-gray-700">${item.招小影}</td>
-                        <td class="px-4 py-3 text-right text-gray-700">${item.爱写作}</td>
-                        <td class="px-4 py-3 text-right text-gray-700">${item.会议助理}</td>
-                        <td class="px-4 py-3 text-right text-gray-700">${item.工作清单}</td>
-                        <td class="px-4 py-3 text-right text-gray-700">${item.人资小i}</td>
-                        <td class="px-4 py-3 text-right text-gray-700">${item.商道积分}</td>
-                        <td class="px-4 py-3 text-right font-bold text-blue-600 bg-blue-50/50">${item.总积分}</td>
-                        <td class="px-4 py-3 text-center">${completionIcon}</td>
+                        <td class="px-4 py-3 text-gray-500" style="width: 80px;">${orgCounter[org]}</td>
+                        <td class="px-4 py-3 font-medium text-gray-900" style="width: 180px;">${item.组织名称}</td>
+                        <td class="px-4 py-3 text-gray-700" style="width: 100px;">${item.用户姓名}</td>
+                        <td class="px-4 py-3 text-gray-500 font-mono text-xs" style="width: 120px;">${item.用户工号}</td>
+                        <td class="px-4 py-3 text-right text-gray-700" style="width: 80px;">${item.招小影}</td>
+                        <td class="px-4 py-3 text-right text-gray-700" style="width: 80px;">${item.爱写作}</td>
+                        <td class="px-4 py-3 text-right text-gray-700" style="width: 80px;">${item.会议助理}</td>
+                        <td class="px-4 py-3 text-right text-gray-700" style="width: 80px;">${item.工作清单}</td>
+                        <td class="px-4 py-3 text-right text-gray-700" style="width: 80px;">${item.人资小i}</td>
+                        <td class="px-4 py-3 text-right text-gray-700" style="width: 80px;">${item.商道积分}</td>
+                        <td class="px-4 py-3 text-right font-bold text-blue-600 bg-blue-50/50" style="width: 80px;">${item.总积分}</td>
+                        <td class="px-4 py-3 text-center" style="width: 80px;">${completionIcon}</td>
                     </tr>
                 `;
             }).join('');
