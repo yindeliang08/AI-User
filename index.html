@@ -416,17 +416,24 @@
             if (allData.length === 0) { showSupabaseResult('error', '没有数据可保存，请先导入Excel'); return; }
 
             try {
-                const { error } = await client
+                showSupabaseResult('error', '⏳ 正在保存...');
+                
+                const { data, error } = await client
                     .from('points_data')
                     .upsert({
                         id: 1,
                         updated_at: new Date().toISOString(),
                         data: allData
-                    }, { onConflict: 'id' });
+                    }, { onConflict: 'id', returning: 'minimal' });
 
-                if (error) throw error;
-                showSupabaseResult('success', '✅ 保存成功！');
+                if (error) {
+                    console.error('Supabase error:', error);
+                    throw new Error(error.message || '未知错误');
+                }
+                showSupabaseResult('success', '✅ 保存成功！数据已同步到云端');
+                console.log('Save successful:', data);
             } catch (err) {
+                console.error('Save error:', err);
                 showSupabaseResult('error', '❌ 保存失败: ' + err.message);
             }
         }
@@ -465,6 +472,10 @@
             resultDiv.classList.remove('hidden', 'bg-green-50', 'text-green-700', 'bg-red-50', 'text-red-700');
             resultDiv.classList.add(type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700');
             resultDiv.textContent = message;
+            
+            setTimeout(() => {
+                resultDiv.classList.add('hidden');
+            }, 3000);
         }
 
         document.addEventListener('DOMContentLoaded', function() {
