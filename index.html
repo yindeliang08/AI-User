@@ -57,12 +57,17 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <!-- Overview Page -->
         <div id="overviewPage" class="fade-in">
-            <div class="mb-6 flex justify-between items-center">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-900">组织积分总览</h2>
-                    <p class="text-sm text-gray-500 mt-1">点击组织名称可查看该组织下所有用户明细</p>
+            <div id="overviewHeader" class="sticky top-16 bg-white/95 backdrop-blur-sm z-20 border-b border-gray-200 mb-4">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900">组织积分总览</h2>
+                            <p class="text-sm text-gray-500 mt-1">点击组织名称可查看该组织下所有用户明细</p>
+                        </div>
+                        <div class="text-sm text-gray-500">共 <span id="orgCount" class="font-semibold text-gray-900">0</span> 个组织</div>
+                    </div>
+                    <div id="companyStats" class="mt-4"></div>
                 </div>
-                <div class="text-sm text-gray-500">共 <span id="orgCount" class="font-semibold text-gray-900">0</span> 个组织</div>
             </div>
             <div id="summaryCards" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6"></div>
             <div id="orgGrid" class=""></div>
@@ -527,10 +532,12 @@
             const summaryCards = document.getElementById('summaryCards');
             const emptyState = document.getElementById('overviewEmpty');
             const orgCount = document.getElementById('orgCount');
+            const companyStats = document.getElementById('companyStats');
 
             if (allData.length === 0) {
                 orgGrid.innerHTML = '';
                 summaryCards.innerHTML = '';
+                companyStats.innerHTML = '';
                 emptyState.classList.remove('hidden');
                 return;
             }
@@ -541,11 +548,10 @@
 
             const companyAvg = calculateCompanyAverage();
             
-            let content = '';
-            
+            // 渲染深圳公司统计卡片到固定区域
             if (companyAvg) {
-                content += `
-                    <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-lg p-4 mb-6">
+                companyStats.innerHTML = `
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-lg p-4">
                         <div class="flex items-center space-x-4">
                             <div class="flex-shrink-0">
                                 <div class="flex items-center justify-center w-12 h-12 bg-white/20 rounded-lg">
@@ -595,7 +601,11 @@
                         </div>
                     </div>
                 `;
+            } else {
+                companyStats.innerHTML = '';
             }
+
+            let content = '';
 
             content += orgs.map((org, index) => `
                 <div class="org-card bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between" onclick="viewOrgDetail('${org.组织名称}')">
