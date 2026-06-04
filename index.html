@@ -89,9 +89,9 @@
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="overflow-x-auto max-h-[calc(100vh-240px)]">
+                <div class="overflow-x-auto">
                     <table class="data-table w-full text-sm">
-                        <thead class="bg-gray-50 text-gray-700">
+                        <thead class="sticky top-0 bg-gray-50 text-gray-700 z-10">
                             <tr>
                                 <th class="px-4 py-3 text-left font-semibold">序号</th>
                                 <th class="px-4 py-3 text-left font-semibold">组织名称</th>
@@ -104,6 +104,7 @@
                                 <th class="px-4 py-3 text-right font-semibold">人资小i</th>
                                 <th class="px-4 py-3 text-right font-semibold">商道积分</th>
                                 <th class="px-4 py-3 text-right font-semibold bg-blue-50">总积分</th>
+                                <th class="px-4 py-3 text-center font-semibold">完成覆盖</th>
                             </tr>
                         </thead>
                         <tbody id="detailTableBody" class="divide-y divide-gray-100"></tbody>
@@ -653,34 +654,97 @@
             orgGrid.innerHTML = content;
         }
 
+        function getCompleteUserData() {
+            const result = [];
+            
+            Object.keys(baseUserData).forEach(userCode => {
+                const user = baseUserData[userCode];
+                const existingData = allData.find(item => item.用户工号 === userCode);
+                if (existingData) {
+                    result.push({
+                        ...existingData,
+                        组织名称: user.组织名称,
+                        用户姓名: user.姓名 || existingData.用户姓名
+                    });
+                } else {
+                    result.push({
+                        用户工号: userCode,
+                        用户姓名: user.姓名,
+                        组织名称: user.组织名称,
+                        招小影: 0,
+                        爱写作: 0,
+                        会议助理: 0,
+                        工作清单: 0,
+                        人资小i: 0,
+                        商道积分: 0,
+                        总积分: 0
+                    });
+                }
+            });
+            
+            return result.sort((a, b) => {
+                if (a.组织名称 !== b.组织名称) {
+                    return a.组织名称.localeCompare(b.组织名称);
+                }
+                return a.用户工号.localeCompare(b.用户工号);
+            });
+        }
+
         function renderDetailTable(data = allData) {
             const tbody = document.getElementById('detailTableBody');
             const emptyState = document.getElementById('detailEmpty');
             const countSpan = document.getElementById('detailCount');
-            countSpan.textContent = data.length;
+            
+            let displayData;
+            if (Object.keys(baseUserData).length > 0) {
+                displayData = getCompleteUserData();
+            } else {
+                displayData = [...data].sort((a, b) => {
+                    if (a.组织名称 !== b.组织名称) {
+                        return a.组织名称.localeCompare(b.组织名称);
+                    }
+                    return a.用户工号.localeCompare(b.用户工号);
+                });
+            }
+            
+            countSpan.textContent = displayData.length;
 
-            if (data.length === 0) {
+            if (displayData.length === 0) {
                 tbody.innerHTML = '';
                 emptyState.classList.remove('hidden');
                 return;
             }
 
             emptyState.classList.add('hidden');
-            tbody.innerHTML = data.map((item) => `
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-gray-500">${item.序号}</td>
-                    <td class="px-4 py-3 font-medium text-gray-900">${item.组织名称}</td>
-                    <td class="px-4 py-3 text-gray-700">${item.用户姓名}</td>
-                    <td class="px-4 py-3 text-gray-500 font-mono text-xs">${item.用户工号}</td>
-                    <td class="px-4 py-3 text-right text-gray-700">${item.招小影}</td>
-                    <td class="px-4 py-3 text-right text-gray-700">${item.爱写作}</td>
-                    <td class="px-4 py-3 text-right text-gray-700">${item.会议助理}</td>
-                    <td class="px-4 py-3 text-right text-gray-700">${item.工作清单}</td>
-                    <td class="px-4 py-3 text-right text-gray-700">${item.人资小i}</td>
-                    <td class="px-4 py-3 text-right text-gray-700">${item.商道积分}</td>
-                    <td class="px-4 py-3 text-right font-bold text-blue-600 bg-blue-50/50">${item.总积分}</td>
-                </tr>
-            `).join('');
+            
+            let orgCounter = {};
+            tbody.innerHTML = displayData.map((item) => {
+                const org = item.组织名称;
+                orgCounter[org] = (orgCounter[org] || 0) + 1;
+                
+                const hasAllData = item.招小影 > 0 && item.爱写作 > 0 && item.会议助理 > 0 && 
+                                   item.工作清单 > 0 && item.人资小i > 0 && item.商道积分 > 0;
+                const completionIcon = hasAllData ? 
+                    '<span class="w-4 h-4 bg-green-500 rounded-full inline-block"></span>' : 
+                    '<span class="w-4 h-4 bg-gray-200 rounded-full inline-block"></span>';
+
+                return `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-3 text-gray-500">${orgCounter[org]}</td>
+                        <td class="px-4 py-3 font-medium text-gray-900">${item.组织名称}</td>
+                        <td class="px-4 py-3 text-gray-700">${item.用户姓名}</td>
+                        <td class="px-4 py-3 text-gray-500 font-mono text-xs">${item.用户工号}</td>
+                        <td class="px-4 py-3 text-right text-gray-700">${item.招小影}</td>
+                        <td class="px-4 py-3 text-right text-gray-700">${item.爱写作}</td>
+                        <td class="px-4 py-3 text-right text-gray-700">${item.会议助理}</td>
+                        <td class="px-4 py-3 text-right text-gray-700">${item.工作清单}</td>
+                        <td class="px-4 py-3 text-right text-gray-700">${item.人资小i}</td>
+                        <td class="px-4 py-3 text-right text-gray-700">${item.商道积分}</td>
+                        <td class="px-4 py-3 text-right font-bold text-blue-600 bg-blue-50/50">${item.总积分}</td>
+                        <td class="px-4 py-3 text-center">${completionIcon}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function updateOrgFilter() {
