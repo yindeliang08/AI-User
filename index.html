@@ -424,10 +424,6 @@
         function showSupabaseModal() {
             document.getElementById('supabaseModal').classList.remove('hidden');
             document.getElementById('supabaseResult').classList.add('hidden');
-            const savedUrl = localStorage.getItem('supabaseUrl');
-            const savedKey = localStorage.getItem('supabaseKey');
-            if (savedUrl) document.getElementById('supabaseUrl').value = savedUrl;
-            if (savedKey) document.getElementById('supabaseKey').value = savedKey;
         }
 
         function hideSupabaseModal() {
@@ -500,7 +496,11 @@
         function showSupabaseResult(type, message) {
             const resultDiv = document.getElementById('supabaseResult');
             resultDiv.classList.remove('hidden', 'bg-green-50', 'text-green-700', 'bg-red-50', 'text-red-700');
-            resultDiv.classList.add(type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700');
+            if (type === 'success') {
+                resultDiv.classList.add('bg-green-50', 'text-green-700');
+            } else {
+                resultDiv.classList.add('bg-red-50', 'text-red-700');
+            }
             resultDiv.textContent = message;
             
             setTimeout(() => {
