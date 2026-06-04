@@ -81,22 +81,26 @@
 
         <!-- Detail Page -->
         <div id="detailPage" class="hidden fade-in">
-            <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-900">积分明细</h2>
-                    <p class="text-sm text-gray-500 mt-1">查看所有用户的积分明细数据</p>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <select id="orgFilter" onchange="filterByOrg()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-                        <option value="">全部组织</option>
-                    </select>
-                    <input type="text" id="searchInput" placeholder="搜索姓名或工号..." oninput="searchTable()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-48">
+            <div id="detailHeader" class="sticky top-16 bg-white/95 backdrop-blur-sm z-20 border-b border-gray-200 mb-4">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900">积分明细</h2>
+                            <p class="text-sm text-gray-500 mt-1">查看所有用户的积分明细数据</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <select id="orgFilter" onchange="filterByOrg()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                <option value="">全部组织</option>
+                            </select>
+                            <input type="text" id="searchInput" placeholder="搜索姓名或工号..." oninput="searchTable()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-48">
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="data-table w-full text-sm">
-                        <thead class="sticky top-0 bg-gray-50 text-gray-700 z-10">
+                        <thead class="sticky top-[88px] bg-gray-50 text-gray-700 z-10">
                             <tr>
                                 <th class="px-4 py-3 text-left font-semibold">序号</th>
                                 <th class="px-4 py-3 text-left font-semibold">组织名称</th>
@@ -477,7 +481,7 @@
                 orgTotalUsers[org] = (orgTotalUsers[org] || 0) + 1;
             });
             
-            // 计算均值
+            // 计算均值和覆盖率
             Object.keys(orgSummary).forEach(org => {
                 const totalUsers = orgTotalUsers[org] || orgSummary[org].用户数;
                 orgSummary[org].组织总人数 = totalUsers;
@@ -488,6 +492,14 @@
                 orgSummary[org].人资小i = Math.round(orgSummary[org].人资小i / totalUsers * 100) / 100;
                 orgSummary[org].商道积分 = Math.round(orgSummary[org].商道积分 / totalUsers * 100) / 100;
                 orgSummary[org].总积分 = Math.round(orgSummary[org].总积分 / totalUsers * 100) / 100;
+                
+                // 计算完成覆盖率（所有工具都有数据的人数/组织总人数）
+                const orgData = allData.filter(item => item.组织名称 === org);
+                const completedCount = orgData.filter(item => 
+                    item.招小影 > 0 && item.爱写作 > 0 && item.会议助理 > 0 && 
+                    item.工作清单 > 0 && item.人资小i > 0 && item.商道积分 > 0
+                ).length;
+                orgSummary[org].覆盖率 = Math.round(completedCount / totalUsers * 100);
             });
         }
         
@@ -496,6 +508,8 @@
             if (totalUsers === 0) return null;
             
             let totals = { 招小影: 0, 爱写作: 0, 会议助理: 0, 工作清单: 0, 人资小i: 0, 商道积分: 0, 总积分: 0 };
+            let completedCount = 0;
+            
             allData.forEach(item => {
                 totals.招小影 += item.招小影;
                 totals.爱写作 += item.爱写作;
@@ -504,6 +518,12 @@
                 totals.人资小i += item.人资小i;
                 totals.商道积分 += item.商道积分;
                 totals.总积分 += item.总积分;
+                
+                // 统计完成人数（所有工具都有数据）
+                if (item.招小影 > 0 && item.爱写作 > 0 && item.会议助理 > 0 && 
+                    item.工作清单 > 0 && item.人资小i > 0 && item.商道积分 > 0) {
+                    completedCount++;
+                }
             });
             
             return {
@@ -514,7 +534,8 @@
                 工作清单: Math.round(totals.工作清单 / totalUsers * 100) / 100,
                 人资小i: Math.round(totals.人资小i / totalUsers * 100) / 100,
                 商道积分: Math.round(totals.商道积分 / totalUsers * 100) / 100,
-                总积分: Math.round(totals.总积分 / totalUsers * 100) / 100
+                总积分: Math.round(totals.总积分 / totalUsers * 100) / 100,
+                覆盖率: Math.round(completedCount / totalUsers * 100)
             };
         }
 
@@ -597,6 +618,10 @@
                                     <div class="text-2xl font-bold text-white">${companyAvg.总积分.toLocaleString()}</div>
                                     <div class="text-xs text-white/70">平均总积分</div>
                                 </div>
+                                <div class="text-center px-4">
+                                    <div class="text-xl font-bold text-white">${companyAvg.覆盖率}%</div>
+                                    <div class="text-xs text-white/70">完成覆盖率</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -653,6 +678,10 @@
                             <div class="text-right">
                                 <div class="text-2xl font-bold text-blue-600">${org.总积分.toLocaleString()}</div>
                                 <div class="text-xs text-gray-500">人均积分</div>
+                            </div>
+                            <div class="text-center px-4">
+                                <div class="text-xl font-bold text-green-600">${org.覆盖率}%</div>
+                                <div class="text-xs text-gray-500">覆盖率</div>
                             </div>
                             <div class="text-blue-600 text-xl">→</div>
                         </div>
@@ -766,10 +795,23 @@
         function filterByOrg() {
             const org = document.getElementById('orgFilter').value;
             const search = document.getElementById('searchInput').value.toLowerCase();
-            let filtered = allData;
-            if (org) filtered = filtered.filter(d => d.组织名称 === org);
-            if (search) filtered = filtered.filter(d => d.用户姓名.toLowerCase().includes(search) || d.用户工号.toLowerCase().includes(search));
-            renderDetailTable(filtered);
+            
+            // 使用完整人员列表进行筛选
+            let displayData;
+            if (Object.keys(baseUserData).length > 0) {
+                displayData = getCompleteUserData();
+            } else {
+                displayData = [...allData].sort((a, b) => {
+                    if (a.组织名称 !== b.组织名称) {
+                        return a.组织名称.localeCompare(b.组织名称);
+                    }
+                    return a.用户工号.localeCompare(b.用户工号);
+                });
+            }
+            
+            if (org) displayData = displayData.filter(d => d.组织名称 === org);
+            if (search) displayData = displayData.filter(d => d.用户姓名.toLowerCase().includes(search) || d.用户工号.toLowerCase().includes(search));
+            renderDetailTable(displayData);
         }
 
         function searchTable() {
@@ -810,7 +852,8 @@
                     .upsert({
                         id: 1,
                         updated_at: new Date().toISOString(),
-                        data: allData
+                        data: allData,
+                        base_data: baseUserData
                     }, { onConflict: 'id', returning: 'minimal' });
 
                 if (error) {
@@ -832,7 +875,7 @@
             try {
                 const { data, error } = await client
                     .from('points_data')
-                    .select('data')
+                    .select('data, base_data')
                     .eq('id', 1)
                     .single();
 
@@ -840,6 +883,12 @@
 
                 if (data && data.data) {
                     allData = data.data;
+                    
+                    // 恢复基础数据
+                    if (data.base_data && typeof data.base_data === 'object') {
+                        baseUserData = data.base_data;
+                        console.log('Loaded base user data from cloud:', Object.keys(baseUserData).length, 'records');
+                    }
                     
                     // 如果有基础数据，应用过滤和修正
                     if (Object.keys(baseUserData).length > 0) {
