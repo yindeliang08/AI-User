@@ -839,10 +839,10 @@
         function initSupabase() {
             // 使用硬编码的Supabase配置
             if (!SUPABASE_URL || !SUPABASE_KEY) return null;
-            if (window.SupabaseClient) {
-                return new window.SupabaseClient(SUPABASE_URL, SUPABASE_KEY);
+            if (typeof supabase !== 'undefined' && supabase.createClient) {
+                return supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             }
-            console.error('SupabaseClient not loaded');
+            console.error('Supabase client not loaded properly');
             return null;
         }
 
