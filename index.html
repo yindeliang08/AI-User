@@ -61,7 +61,7 @@
                 <div class="text-sm text-gray-500">共 <span id="orgCount" class="font-semibold text-gray-900">0</span> 个组织</div>
             </div>
             <div id="summaryCards" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6"></div>
-            <div id="orgGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            <div id="orgGrid" class=""></div>
             <div id="overviewEmpty" class="text-center py-20">
                 <div class="text-6xl mb-4">📂</div>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">暂无数据</h3>
@@ -311,27 +311,57 @@
             // 隐藏汇总卡片区域
             summaryCards.innerHTML = '';
 
-            orgGrid.innerHTML = orgs.map((org) => `
-                <div class="org-card bg-white rounded-xl shadow-sm border border-gray-200 p-5" onclick="viewOrgDetail('${org.组织名称}')">
-                    <div class="flex justify-between items-start mb-3">
+            orgGrid.className = 'space-y-3';
+            orgGrid.innerHTML = orgs.map((org, index) => `
+                <div class="org-card bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between" onclick="viewOrgDetail('${org.组织名称}')">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-shrink-0">
+                            <div class="flex items-center justify-center w-12 h-12 ${index < 3 ? 'bg-yellow-100' : 'bg-blue-100'} rounded-lg">
+                                <span class="text-xl font-bold ${index < 3 ? 'text-yellow-600' : 'text-blue-600'}">${index + 1}</span>
+                            </div>
+                        </div>
                         <div>
                             <h3 class="font-bold text-gray-900 text-lg">${org.组织名称}</h3>
                             <p class="text-sm text-gray-500">${org.用户数} 位用户</p>
                         </div>
-                        <div class="text-right">
-                            <div class="text-2xl font-bold text-blue-600">${org.总积分.toLocaleString()}</div>
-                            <div class="text-xs text-gray-500">总积分</div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-6">
+                        <div class="flex items-center space-x-4 text-sm">
+                            <div class="text-center min-w-[60px]">
+                                <div class="font-semibold text-gray-700">${org.招小影}</div>
+                                <div class="text-xs text-gray-500">招小影</div>
+                            </div>
+                            <div class="text-center min-w-[60px]">
+                                <div class="font-semibold text-gray-700">${org.爱写作}</div>
+                                <div class="text-xs text-gray-500">爱写作</div>
+                            </div>
+                            <div class="text-center min-w-[60px]">
+                                <div class="font-semibold text-gray-700">${org.会议助理}</div>
+                                <div class="text-xs text-gray-500">会议助理</div>
+                            </div>
+                            <div class="text-center min-w-[60px]">
+                                <div class="font-semibold text-gray-700">${org.工作清单}</div>
+                                <div class="text-xs text-gray-500">工作清单</div>
+                            </div>
+                            <div class="text-center min-w-[60px]">
+                                <div class="font-semibold text-gray-700">${org.人资小i}</div>
+                                <div class="text-xs text-gray-500">人资小i</div>
+                            </div>
+                            <div class="text-center min-w-[60px]">
+                                <div class="font-semibold text-gray-700">${org.商道积分}</div>
+                                <div class="text-xs text-gray-500">商道积分</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3 pl-6 border-l border-gray-200">
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-blue-600">${org.总积分.toLocaleString()}</div>
+                                <div class="text-xs text-gray-500">总积分</div>
+                            </div>
+                            <div class="text-blue-600 text-xl">→</div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-gray-100">
-                        <div class="text-center"><div class="text-sm font-semibold text-gray-700">${org.招小影}</div><div class="text-xs text-gray-500">招小影</div></div>
-                        <div class="text-center"><div class="text-sm font-semibold text-gray-700">${org.爱写作}</div><div class="text-xs text-gray-500">爱写作</div></div>
-                        <div class="text-center"><div class="text-sm font-semibold text-gray-700">${org.会议助理}</div><div class="text-xs text-gray-500">会议助理</div></div>
-                        <div class="text-center"><div class="text-sm font-semibold text-gray-700">${org.工作清单}</div><div class="text-xs text-gray-500">工作清单</div></div>
-                        <div class="text-center"><div class="text-sm font-semibold text-gray-700">${org.人资小i}</div><div class="text-xs text-gray-500">人资小i</div></div>
-                        <div class="text-center"><div class="text-sm font-semibold text-gray-700">${org.商道积分}</div><div class="text-xs text-gray-500">商道积分</div></div>
-                    </div>
-                    <div class="mt-3 text-xs text-blue-600 font-medium flex items-center justify-center">点击查看明细 →</div>
                 </div>
             `).join('');
         }
