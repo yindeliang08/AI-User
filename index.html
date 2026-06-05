@@ -7,6 +7,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
@@ -61,17 +62,28 @@
             <div id="overviewHeader" class="sticky top-16 bg-white/95 backdrop-blur-sm z-20 border-b border-gray-200 mb-4">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div class="flex justify-between items-center">
-                        <div>
-                            <h2 class="text-2xl font-bold text-gray-900">组织积分总览</h2>
-                            <p class="text-sm text-gray-500 mt-1">点击组织名称可查看该组织下所有用户明细</p>
+                        <div class="flex items-center space-x-4">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-900">组织积分总览</h2>
+                                <p class="text-sm text-gray-500 mt-1">点击组织名称可查看该组织下所有用户明细</p>
+                            </div>
+                            <span id="dataCutoffDate" class="text-sm text-gray-600"></span>
                         </div>
-                        <div class="text-sm text-gray-500">共 <span id="orgCount" class="font-semibold text-gray-900">0</span> 个组织</div>
+                        <div class="flex items-center space-x-3">
+                            <span class="text-sm text-gray-500">共 <span id="orgCount" class="font-semibold text-gray-900">0</span> 个组织</span>
+                            <button onclick="exportOverviewImage()" class="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center space-x-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                <span>导出图片</span>
+                            </button>
+                        </div>
                     </div>
                     <div id="companyStats" class="mt-4"></div>
                 </div>
             </div>
-            <div id="summaryCards" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6"></div>
-            <div id="orgGrid" class=""></div>
+            <div id="overviewContent" class="bg-gray-50">
+                <div id="summaryCards" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6"></div>
+                <div id="orgGrid" class=""></div>
+            </div>
             <div id="overviewEmpty" class="text-center py-20">
                 <div class="text-6xl mb-4">📂</div>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">暂无数据</h3>
@@ -211,6 +223,7 @@
         let baseUserData = {}; // 基础人员数据，工号 -> {姓名, 组织名称}
         let orgSummary = {};
         let currentView = 'overview';
+        let lastUploadDate = null; // 最后一次上传云端的日期字符串，用于计算数据截止日期
 
         // Supabase 配置（硬编码）
         const SUPABASE_URL = 'https://bhglrwkklvwrjoazroem.supabase.co';
@@ -854,12 +867,15 @@
             try {
                 showSupabaseResult('error', '⏳ 正在保存...');
                 
+                // 记录上传日期
+                lastUploadDate = new Date().toISOString();
+                
                 // 先尝试保存完整数据（包含 base_data）
                 let { data, error } = await client
                     .from('points_data')
                     .upsert({
                         id: 1,
-                        updated_at: new Date().toISOString(),
+                        updated_at: lastUploadDate,
                         data: allData,
                         base_data: baseUserData
                     }, { onConflict: 'id', returning: 'minimal' });
@@ -871,7 +887,7 @@
                         .from('points_data')
                         .upsert({
                             id: 1,
-                            updated_at: new Date().toISOString(),
+                            updated_at: lastUploadDate,
                             data: allData
                         }, { onConflict: 'id', returning: 'minimal' });
                     
@@ -879,6 +895,9 @@
                     data = dataOnly;
                 }
 
+                // 更新数据截止日期显示
+                updateDataCutoffDate();
+                
                 showSupabaseResult('success', '✅ 保存成功！数据已同步到云端');
                 console.log('Save successful:', data);
             } catch (err) {
@@ -894,7 +913,7 @@
             try {
                 const { data, error } = await client
                     .from('points_data')
-                    .select('data, base_data')
+                    .select('data, base_data, updated_at')
                     .eq('id', 1)
                     .single();
 
@@ -903,7 +922,7 @@
                     // 如果失败，尝试只读取 data
                     const { data: dataOnly, error: error2 } = await client
                         .from('points_data')
-                        .select('data')
+                        .select('data, updated_at')
                         .eq('id', 1)
                         .single();
                     
@@ -911,6 +930,13 @@
                     
                     if (dataOnly && dataOnly.data) {
                         allData = dataOnly.data;
+                        
+                        // 恢复上传日期
+                        if (dataOnly.updated_at) {
+                            lastUploadDate = dataOnly.updated_at;
+                            updateDataCutoffDate();
+                        }
+                        
                         calculateOrgSummary();
                         updateDataStatus();
                         renderOverview();
@@ -924,6 +950,12 @@
 
                 if (data && data.data) {
                     allData = data.data;
+                    
+                    // 恢复上传日期
+                    if (data.updated_at) {
+                        lastUploadDate = data.updated_at;
+                        updateDataCutoffDate();
+                    }
                     
                     // 恢复基础数据（兼容旧数据格式）
                     if (data.base_data && typeof data.base_data === 'object') {
@@ -1011,6 +1043,59 @@
                 if (Object.keys(baseUserData).length > 0) localStorage.setItem('baseUserData', JSON.stringify(baseUserData));
             });
         });
+
+        function updateDataCutoffDate() {
+            const cutoffDateElement = document.getElementById('dataCutoffDate');
+            if (!cutoffDateElement || !lastUploadDate) return;
+            
+            const uploadDate = new Date(lastUploadDate);
+            const cutoffDate = new Date(uploadDate);
+            cutoffDate.setDate(cutoffDate.getDate() - 1);
+            
+            const month = cutoffDate.getMonth() + 1;
+            const day = cutoffDate.getDate();
+            cutoffDateElement.textContent = `数据截止至${month}月${day}日`;
+        }
+
+        async function exportOverviewImage() {
+            const overviewContent = document.getElementById('overviewContent');
+            if (!overviewContent) {
+                alert('未找到导出内容');
+                return;
+            }
+
+            try {
+                // 显示加载提示
+                const originalTitle = document.title;
+                document.title = '正在导出图片...';
+
+                // 滚动到顶部
+                window.scrollTo(0, 0);
+
+                // 等待滚动完成
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // 使用html2canvas捕获图片
+                const canvas = await html2canvas(overviewContent, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#f3f4f6'
+                });
+
+                // 恢复标题
+                document.title = originalTitle;
+
+                // 创建下载链接
+                const link = document.createElement('a');
+                link.download = `组织积分总览_${new Date().toISOString().slice(0, 10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } catch (error) {
+                console.error('导出图片失败:', error);
+                alert('导出图片失败，请重试');
+            }
+        }
 
         document.addEventListener('dragover', (e) => e.preventDefault());
         document.addEventListener('drop', (e) => {
