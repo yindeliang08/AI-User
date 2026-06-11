@@ -810,12 +810,7 @@
                 }
             });
 
-            return result.sort((a, b) => {
-                if (a.组织名称 !== b.组织名称) {
-                    return a.组织名称.localeCompare(b.组织名称);
-                }
-                return a.用户工号.localeCompare(b.用户工号);
-            });
+            return result.sort((a, b) => b.总积分 - a.总积分);
         }
 
         function renderDetailTable(data = null) {
@@ -829,12 +824,7 @@
             } else if (Object.keys(baseUserData).length > 0) {
                 displayData = getCompleteUserData();
             } else {
-                displayData = [...allData].sort((a, b) => {
-                    if (a.组织名称 !== b.组织名称) {
-                        return a.组织名称.localeCompare(b.组织名称);
-                    }
-                    return a.用户工号.localeCompare(b.用户工号);
-                });
+                displayData = [...allData].sort((a, b) => b.总积分 - a.总积分);
             }
             
             countSpan.textContent = displayData.length;
@@ -847,10 +837,9 @@
 
             emptyState.classList.add('hidden');
             
-            let orgCounter = {};
+            let globalIndex = 0;
             tbody.innerHTML = displayData.map((item) => {
-                const org = item.组织名称;
-                orgCounter[org] = (orgCounter[org] || 0) + 1;
+                globalIndex++;
                 
                 const hasAllData = item.招小影 > 0 && item.爱写作 > 0 && item.会议助理 > 0 && 
                                    item.工作清单 > 0 && item.人资小i > 0 && item.商道积分 > 0;
@@ -860,7 +849,7 @@
 
                 return `
                     <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-4 py-3 text-gray-500" style="width: 80px;">${orgCounter[org]}</td>
+                        <td class="px-4 py-3 text-gray-500" style="width: 80px;">${globalIndex}</td>
                         <td class="px-4 py-3 font-medium text-gray-900" style="width: 180px;">${item.组织名称}</td>
                         <td class="px-4 py-3 text-gray-700" style="width: 100px;">${item.用户姓名}</td>
                         <td class="px-4 py-3 text-gray-500 font-mono text-xs" style="width: 120px;">${item.用户工号}</td>
@@ -892,16 +881,14 @@
             if (Object.keys(baseUserData).length > 0) {
                 displayData = getCompleteUserData();
             } else {
-                displayData = [...allData].sort((a, b) => {
-                    if (a.组织名称 !== b.组织名称) {
-                        return a.组织名称.localeCompare(b.组织名称);
-                    }
-                    return a.用户工号.localeCompare(b.用户工号);
-                });
+                displayData = [...allData].sort((a, b) => b.总积分 - a.总积分);
             }
             
             if (org) displayData = displayData.filter(d => d.组织名称 === org);
             if (search) displayData = displayData.filter(d => d.用户姓名.toLowerCase().includes(search) || d.用户工号.toLowerCase().includes(search));
+            
+            // 确保筛选后的数据按总积分排序
+            displayData.sort((a, b) => b.总积分 - a.总积分);
             
             // 保存筛选后的数据，用于导出
             currentFilteredData = displayData;
