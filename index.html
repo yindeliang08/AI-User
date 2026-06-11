@@ -69,7 +69,7 @@
                                 <p class="text-sm text-gray-500 mt-1">点击组织名称可查看该组织下所有用户明细</p>
                             </div>
                             <div class="flex items-center space-x-8">
-                                <div id="dataCutoffDate" class="text-sm text-gray-600"></div>
+                                <div id="dataCutoffDate" class="text-base font-bold text-red-600"></div>
                                 <div class="text-sm text-gray-500">共 <span id="orgCount" class="font-semibold text-gray-900">0</span> 个组织</div>
                             </div>
                         </div>
@@ -569,13 +569,13 @@
             Object.keys(orgSummary).forEach(org => {
                 const totalUsers = orgTotalUsers[org] || orgSummary[org].用户数;
                 orgSummary[org].组织总人数 = totalUsers;
-                orgSummary[org].招小影 = Math.round(orgSummary[org].招小影 / totalUsers * 100) / 100;
-                orgSummary[org].爱写作 = Math.round(orgSummary[org].爱写作 / totalUsers * 100) / 100;
-                orgSummary[org].会议助理 = Math.round(orgSummary[org].会议助理 / totalUsers * 100) / 100;
-                orgSummary[org].工作清单 = Math.round(orgSummary[org].工作清单 / totalUsers * 100) / 100;
-                orgSummary[org].人资小i = Math.round(orgSummary[org].人资小i / totalUsers * 100) / 100;
-                orgSummary[org].商道积分 = Math.round(orgSummary[org].商道积分 / totalUsers * 100) / 100;
-                orgSummary[org].总积分 = Math.round(orgSummary[org].总积分 / totalUsers * 100) / 100;
+                orgSummary[org].招小影 = Math.round(orgSummary[org].招小影 / totalUsers * 10) / 10;
+                orgSummary[org].爱写作 = Math.round(orgSummary[org].爱写作 / totalUsers * 10) / 10;
+                orgSummary[org].会议助理 = Math.round(orgSummary[org].会议助理 / totalUsers * 10) / 10;
+                orgSummary[org].工作清单 = Math.round(orgSummary[org].工作清单 / totalUsers * 10) / 10;
+                orgSummary[org].人资小i = Math.round(orgSummary[org].人资小i / totalUsers * 10) / 10;
+                orgSummary[org].商道积分 = Math.round(orgSummary[org].商道积分 / totalUsers * 10) / 10;
+                orgSummary[org].总积分 = Math.round(orgSummary[org].总积分 / totalUsers * 10) / 10;
                 
                 // 计算完成人数和覆盖率（所有工具都有数据的人数）
                 const orgData = allData.filter(item => item.组织名称 === org);
@@ -615,13 +615,13 @@
                 总人数: totalUsers,
                 有数据人数: allData.length,
                 完成人数: completedCount,
-                招小影: Math.round(totals.招小影 / totalUsers * 100) / 100,
-                爱写作: Math.round(totals.爱写作 / totalUsers * 100) / 100,
-                会议助理: Math.round(totals.会议助理 / totalUsers * 100) / 100,
-                工作清单: Math.round(totals.工作清单 / totalUsers * 100) / 100,
-                人资小i: Math.round(totals.人资小i / totalUsers * 100) / 100,
-                商道积分: Math.round(totals.商道积分 / totalUsers * 100) / 100,
-                总积分: Math.round(totals.总积分 / totalUsers * 100) / 100,
+                招小影: Math.round(totals.招小影 / totalUsers * 10) / 10,
+                爱写作: Math.round(totals.爱写作 / totalUsers * 10) / 10,
+                会议助理: Math.round(totals.会议助理 / totalUsers * 10) / 10,
+                工作清单: Math.round(totals.工作清单 / totalUsers * 10) / 10,
+                人资小i: Math.round(totals.人资小i / totalUsers * 10) / 10,
+                商道积分: Math.round(totals.商道积分 / totalUsers * 10) / 10,
+                总积分: Math.round(totals.总积分 / totalUsers * 10) / 10,
                 覆盖率: Math.round(completedCount / totalUsers * 100)
             };
         }
