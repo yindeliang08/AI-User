@@ -60,17 +60,17 @@
         <!-- Overview Page -->
         <div id="overviewPage" class="fade-in">
             <!-- 标题区域 -->
-            <div id="overviewContent" class="bg-gray-50 pb-6">
-                <div class="bg-white border-b border-gray-200">
+            <div id="overviewContent" class="bg-white pb-6">
+                <div class="border-b border-gray-200">
                     <div class="max-w-7xl mx-auto px-6 py-4">
-                        <div class="flex justify-between items-start">
+                        <div class="flex justify-between items-center">
                             <div>
-                                <h2 class="text-2xl font-bold text-gray-900">组织积分总览</h2>
+                                <h2 class="text-xl font-bold text-gray-900">组织积分总览</h2>
                                 <p class="text-sm text-gray-500 mt-1">点击组织名称可查看该组织下所有用户明细</p>
                             </div>
-                            <div class="text-right">
+                            <div class="flex items-center space-x-8">
                                 <div id="dataCutoffDate" class="text-sm text-gray-600"></div>
-                                <div class="text-sm text-gray-500 mt-1">共 <span id="orgCount" class="font-semibold text-gray-900">0</span> 个组织</div>
+                                <div class="text-sm text-gray-500">共 <span id="orgCount" class="font-semibold text-gray-900">0</span> 个组织</div>
                             </div>
                         </div>
                     </div>
@@ -78,7 +78,7 @@
                 
                 <!-- 公告栏 -->
                 <div class="max-w-7xl mx-auto px-6 mt-4">
-                    <div class="bg-yellow-100 border-yellow-300 text-red-600 px-4 py-3 rounded-lg text-center font-medium">
+                    <div class="bg-yellow-100 text-red-600 px-4 py-3 rounded-lg text-center font-medium">
                         ⚠️ 目前统计范围为在编员工，集团尚未明确后续是否增加外包、物业人员，建议先行全范围推广
                     </div>
                 </div>
@@ -546,7 +546,7 @@
             allData.forEach(item => {
                 const org = item.组织名称;
                 if (!orgSummary[org]) {
-                    orgSummary[org] = { 组织名称: org, 用户数: 0, 组织总人数: 0, 招小影: 0, 爱写作: 0, 会议助理: 0, 工作清单: 0, 人资小i: 0, 商道积分: 0, 总积分: 0 };
+                    orgSummary[org] = { 组织名称: org, 用户数: 0, 组织总人数: 0, 完成人数: 0, 招小影: 0, 爱写作: 0, 会议助理: 0, 工作清单: 0, 人资小i: 0, 商道积分: 0, 总积分: 0 };
                 }
                 orgSummary[org].用户数++;
                 orgSummary[org].招小影 += item.招小影;
@@ -577,12 +577,13 @@
                 orgSummary[org].商道积分 = Math.round(orgSummary[org].商道积分 / totalUsers * 100) / 100;
                 orgSummary[org].总积分 = Math.round(orgSummary[org].总积分 / totalUsers * 100) / 100;
                 
-                // 计算完成覆盖率（所有工具都有数据的人数/组织总人数）
+                // 计算完成人数和覆盖率（所有工具都有数据的人数）
                 const orgData = allData.filter(item => item.组织名称 === org);
                 const completedCount = orgData.filter(item => 
                     item.招小影 > 0 && item.爱写作 > 0 && item.会议助理 > 0 && 
                     item.工作清单 > 0 && item.人资小i > 0 && item.商道积分 > 0
                 ).length;
+                orgSummary[org].完成人数 = completedCount;
                 orgSummary[org].覆盖率 = Math.round(completedCount / totalUsers * 100);
             });
         }
@@ -658,51 +659,51 @@
             // 渲染深圳公司统计卡片到固定区域
             if (companyAvg) {
                 companyStats.innerHTML = `
-                    <div class="bg-gradient-to-r from-blue-800 to-blue-900 rounded-xl shadow-lg p-5">
-                        <div class="flex items-center space-x-4">
+                    <div class="bg-blue-800 rounded-xl p-5">
+                        <div class="flex items-center space-x-3 mb-4">
                             <div class="flex-shrink-0">
-                                <div class="flex items-center justify-center w-12 h-12 bg-white/20 rounded-lg">
-                                    <span class="text-xl font-bold text-white">🏢</span>
+                                <div class="flex items-center justify-center w-10 h-10 bg-blue-700 rounded-lg">
+                                    <span class="text-lg">📊</span>
                                 </div>
                             </div>
                             <div>
-                                <h3 class="font-bold text-white text-lg">深圳公司完成情况均值</h3>
-                                <p class="text-white/80 text-sm">${companyAvg.总人数}位员工（${companyAvg.有数据人数}人有数据，其中${companyAvg.完成人数}人已完成） <span class="text-red-400 text-xl font-bold">覆盖率: ${companyAvg.覆盖率}%</span></p>
+                                <h3 class="font-bold text-white text-base">深圳公司完成情况均值</h3>
+                                <p class="text-white/70 text-sm">${companyAvg.总人数}位员工（${companyAvg.有数据人数}人有数据，其中${companyAvg.完成人数}人已完成） <span class="text-red-400 font-bold">覆盖率: ${companyAvg.覆盖率}%</span></p>
                             </div>
                         </div>
                         
-                        <div class="flex items-center justify-between mt-5">
-                            <div class="flex items-center space-x-8">
+                        <div class="flex items-center">
+                            <div class="flex-1 flex items-center justify-around">
                                 <div class="text-center">
                                     <div class="font-semibold text-white text-lg">${companyAvg.招小影}</div>
-                                    <div class="text-xs text-white/70">招小影</div>
+                                    <div class="text-xs text-white/60">招小影</div>
                                 </div>
                                 <div class="text-center">
                                     <div class="font-semibold text-white text-lg">${companyAvg.爱写作}</div>
-                                    <div class="text-xs text-white/70">爱写作</div>
+                                    <div class="text-xs text-white/60">爱写作</div>
                                 </div>
                                 <div class="text-center">
                                     <div class="font-semibold text-white text-lg">${companyAvg.会议助理}</div>
-                                    <div class="text-xs text-white/70">会议助理</div>
+                                    <div class="text-xs text-white/60">会议助理</div>
                                 </div>
                                 <div class="text-center">
                                     <div class="font-semibold text-white text-lg">${companyAvg.工作清单}</div>
-                                    <div class="text-xs text-white/70">工作清单</div>
+                                    <div class="text-xs text-white/60">工作清单</div>
                                 </div>
                                 <div class="text-center">
                                     <div class="font-semibold text-white text-lg">${companyAvg.人资小i}</div>
-                                    <div class="text-xs text-white/70">人资小i</div>
+                                    <div class="text-xs text-white/60">人资小i</div>
                                 </div>
                                 <div class="text-center">
                                     <div class="font-semibold text-white text-lg">${companyAvg.商道积分}</div>
-                                    <div class="text-xs text-white/70">商道积分</div>
+                                    <div class="text-xs text-white/60">商道积分</div>
                                 </div>
                             </div>
                             
                             <div class="flex items-center pl-6 border-l border-white/20">
                                 <div class="text-center">
                                     <div class="text-3xl font-bold text-white">${companyAvg.总积分}</div>
-                                    <div class="text-xs text-white/70">积分情况</div>
+                                    <div class="text-xs text-white/60">积分情况</div>
                                 </div>
                             </div>
                         </div>
@@ -715,72 +716,62 @@
             let content = '';
 
             content += orgs.map((org, index) => {
-                const crownIcons = ['👑', '👑', '👑'];
-                const ranks = ['冠军', '亚军', '季军'];
-                const rankColors = ['text-yellow-500', 'text-gray-400', 'text-orange-600'];
+                const crownIcons = ['👑', '🥈', '🥉'];
+                const isTop3 = index < 3;
                 
                 return `
-                <div class="org-card bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between" onclick="viewOrgDetail('${org.组织名称}')">
-                    <div class="flex items-center space-x-4">
-                        <div class="flex-shrink-0">
-                            <div class="flex items-center justify-center w-12 h-12 ${index < 3 ? 'bg-yellow-100' : 'bg-blue-100'} rounded-lg">
-                                <span class="text-xl font-bold ${index < 3 ? 'text-yellow-600' : 'text-blue-600'}">${index + 1}</span>
+                <div class="org-card bg-white rounded-lg border border-gray-200 p-4 flex items-center" onclick="viewOrgDetail('${org.组织名称}')">
+                    <div class="flex items-center space-x-3">
+                        <div class="flex-shrink-0 relative">
+                            <div class="flex items-center justify-center w-10 h-10 ${isTop3 ? 'bg-yellow-100' : 'bg-blue-100'} rounded-lg">
+                                <span class="text-lg font-bold ${isTop3 ? 'text-yellow-600' : 'text-blue-600'}">${index + 1}</span>
                             </div>
+                            ${isTop3 ? `<span class="absolute -top-1 -right-1 text-lg">${crownIcons[index]}</span>` : ''}
                         </div>
-                        <div>
-                            <div class="flex items-center space-x-2">
-                                <h3 class="font-bold text-gray-900 text-lg">${org.组织名称}</h3>
-                                ${index < 3 ? `<span class="text-sm font-medium ${rankColors[index]}">${crownIcons[index]} ${ranks[index]}</span>` : ''}
-                            </div>
-                            <p class="text-sm text-gray-500">${org.组织总人数} 位员工（${org.用户数} 人有数据）</p>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-900 text-base">${org.组织名称}</h3>
+                            <p class="text-sm text-gray-500">${org.组织总人数}位员工（${org.用户数}人有数据，其中${org.完成人数 || 0}人已完成）<span class="text-red-600 font-bold">覆盖率: ${org.覆盖率}%</span></p>
                         </div>
                     </div>
                     
-                    <div class="flex items-center space-x-6">
-                        <div class="flex items-center space-x-4 text-sm">
-                            <div class="text-center min-w-[60px]">
-                                <div class="font-semibold text-gray-700">${org.招小影}</div>
-                                <div class="text-xs text-gray-500">招小影</div>
-                            </div>
-                            <div class="text-center min-w-[60px]">
-                                <div class="font-semibold text-gray-700">${org.爱写作}</div>
-                                <div class="text-xs text-gray-500">爱写作</div>
-                            </div>
-                            <div class="text-center min-w-[60px]">
-                                <div class="font-semibold text-gray-700">${org.会议助理}</div>
-                                <div class="text-xs text-gray-500">会议助理</div>
-                            </div>
-                            <div class="text-center min-w-[60px]">
-                                <div class="font-semibold text-gray-700">${org.工作清单}</div>
-                                <div class="text-xs text-gray-500">工作清单</div>
-                            </div>
-                            <div class="text-center min-w-[60px]">
-                                <div class="font-semibold text-gray-700">${org.人资小i}</div>
-                                <div class="text-xs text-gray-500">人资小i</div>
-                            </div>
-                            <div class="text-center min-w-[60px]">
-                                <div class="font-semibold text-gray-700">${org.商道积分}</div>
-                                <div class="text-xs text-gray-500">商道积分</div>
-                            </div>
+                    <div class="flex-1 flex items-center justify-around mx-8">
+                        <div class="text-center">
+                            <div class="font-semibold text-gray-700">${org.招小影}</div>
+                            <div class="text-xs text-gray-500">招小影</div>
                         </div>
-                        
-                        <div class="flex items-center space-x-3 pl-6 border-l border-gray-200">
-                            <div class="text-right">
-                                <div class="text-2xl font-bold text-blue-600">${org.总积分.toLocaleString()}</div>
-                                <div class="text-xs text-gray-500">人均积分</div>
-                            </div>
-                            <div class="text-center px-4">
-                                <div class="text-xl font-bold text-green-600">${org.覆盖率}%</div>
-                                <div class="text-xs text-gray-500">覆盖率</div>
-                            </div>
-                            <div class="text-blue-600 text-xl">→</div>
+                        <div class="text-center">
+                            <div class="font-semibold text-gray-700">${org.爱写作}</div>
+                            <div class="text-xs text-gray-500">爱写作</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-semibold text-gray-700">${org.会议助理}</div>
+                            <div class="text-xs text-gray-500">会议助理</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-semibold text-gray-700">${org.工作清单}</div>
+                            <div class="text-xs text-gray-500">工作清单</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-semibold text-gray-700">${org.人资小i}</div>
+                            <div class="text-xs text-gray-500">人资小i</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-semibold text-gray-700">${org.商道积分}</div>
+                            <div class="text-xs text-gray-500">商道积分</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center pl-6 border-l border-gray-200">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600">${org.总积分}</div>
+                            <div class="text-xs text-gray-500">人均积分</div>
                         </div>
                     </div>
                 </div>
                 `;
             }).join('');
 
-            orgGrid.className = 'space-y-3';
+            orgGrid.className = 'space-y-2';
             orgGrid.innerHTML = content;
         }
 
