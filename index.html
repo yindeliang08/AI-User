@@ -324,35 +324,36 @@
                 showBaseDataResult('error', '数据格式不正确，请检查文件内容');
                 return;
             }
-            
+
             const headers = rawData[0];
             const dataRows = rawData.slice(1);
             baseUserData = {};
-            
+
             let userCodeIndex = -1;
             let userNameIndex = -1;
             let orgNameIndex = -1;
-            
+
             // 查找列索引（兼容中文列名）
             headers.forEach((header, index) => {
                 const h = String(header || '').trim();
-                if (h.includes('工号') || h.includes('用户工号')) userCodeIndex = index;
-                if (h.includes('姓名') || h.includes('用户姓名')) userNameIndex = index;
-                if (h.includes('组织') && !h.includes('全链路')) orgNameIndex = index;
+                if (h.includes('工号') && userCodeIndex === -1) userCodeIndex = index;
+                if (h.includes('姓名') && userNameIndex === -1) userNameIndex = index;
+                if (h.includes('组织') && !h.includes('全链路') && orgNameIndex === -1) orgNameIndex = index;
             });
-            
+
             if (userCodeIndex === -1 || orgNameIndex === -1) {
                 showBaseDataResult('error', '未找到必要的列（工号、组织名称）');
                 return;
             }
-            
+
             let importedCount = 0;
             dataRows.forEach(row => {
                 const userCode = String(row[userCodeIndex] || '').trim();
                 const userName = userNameIndex !== -1 ? String(row[userNameIndex] || '').trim() : '';
                 const orgName = String(row[orgNameIndex] || '').trim();
-                
-                if (userCode && orgName) {
+
+                // 跳过"公司领导"组织和空数据
+                if (userCode && orgName && orgName !== '公司领导') {
                     baseUserData[userCode] = {
                         姓名: userName,
                         组织名称: orgName
@@ -360,7 +361,7 @@
                     importedCount++;
                 }
             });
-            
+
             if (importedCount > 0) {
                 // 保存到本地存储
                 localStorage.setItem('baseUserData', JSON.stringify(baseUserData));
@@ -369,7 +370,7 @@
                 const baseDataCount = document.getElementById('baseDataCount');
                 baseDataStatus.classList.remove('hidden');
                 baseDataCount.textContent = importedCount;
-                
+
                 // 如果已有Excel数据，重新处理
                 if (allData.length > 0) {
                     processDataWithBaseData();
@@ -392,12 +393,18 @@
 
         function processDataWithBaseData() {
             // 根据基础数据修正和过滤
+            const seenCodes = new Set();
             allData = allData.filter(item => {
                 const userCode = item.用户工号;
                 // 只保留在基础数据中存在的用户
                 if (!baseUserData[userCode]) {
                     return false;
                 }
+                // 去重：同一个工号只保留第一条记录
+                if (seenCodes.has(userCode)) {
+                    return false;
+                }
+                seenCodes.add(userCode);
                 // 用基础数据修正组织名称
                 item.组织名称 = baseUserData[userCode].组织名称;
                 // 如果基础数据中有姓名，也用基础数据修正
@@ -406,7 +413,10 @@
                 }
                 return true;
             });
-            
+
+            // 过滤掉"公司领导"组织的数据
+            allData = allData.filter(item => item.组织名称 !== '公司领导');
+
             calculateOrgSummary();
             updateDataStatus();
             renderOverview();
@@ -449,27 +459,70 @@
             if (rawData.length < 2) return;
             const headers = rawData[0];
             const dataRows = rawData.slice(1);
+
+            // 智能列检测（类似基础数据导入的方式）
+            let userCodeIndex = -1;
+            let userNameIndex = -1;
+            let orgNameIndex = -1;
+            let orgFullLinkIndex = -1;
+            let totalPointsIndex = -1;
+            let zhaoIndex = -1;
+            let aiIndex = -1;
+            let meetingIndex = -1;
+            let workIndex = -1;
+            let hrIndex = -1;
+            let businessIndex = -1;
+
+            headers.forEach((header, index) => {
+                const h = String(header || '').trim();
+                if (h.includes('工号') && userCodeIndex === -1) userCodeIndex = index;
+                else if (h.includes('姓名') && userNameIndex === -1) userNameIndex = index;
+                else if (h.includes('组织') && h.includes('全链路') && orgFullLinkIndex === -1) orgFullLinkIndex = index;
+                else if (h.includes('组织') && orgNameIndex === -1) orgNameIndex = index;
+                else if (h.includes('总积分') && totalPointsIndex === -1) totalPointsIndex = index;
+                else if (h.includes('招小影') && zhaoIndex === -1) zhaoIndex = index;
+                else if (h.includes('爱写作') && aiIndex === -1) aiIndex = index;
+                else if (h.includes('会议助理') && meetingIndex === -1) meetingIndex = index;
+                else if (h.includes('工作清单') && workIndex === -1) workIndex = index;
+                else if (h.includes('人资') && hrIndex === -1) hrIndex = index;
+                else if (h.includes('商道') && businessIndex === -1) businessIndex = index;
+            });
+
+            // 如果找不到关键字段，回退到列位置映射
+            if (userCodeIndex === -1) userCodeIndex = 0;
+            if (userNameIndex === -1) userNameIndex = 1;
+            if (orgNameIndex === -1) orgNameIndex = 2;
+            if (orgFullLinkIndex === -1) orgFullLinkIndex = 3;
+            if (totalPointsIndex === -1) totalPointsIndex = 4;
+            if (zhaoIndex === -1) zhaoIndex = 5;
+            if (aiIndex === -1) aiIndex = 6;
+            if (meetingIndex === -1) meetingIndex = 7;
+            if (workIndex === -1) workIndex = 8;
+            if (hrIndex === -1) hrIndex = 9;
+            if (businessIndex === -1) businessIndex = 10;
+
             allData = dataRows.map((row, index) => {
                 const getValue = (idx) => {
+                    if (idx === -1) return 0;
                     const val = row[idx];
                     return val !== undefined ? (typeof val === 'number' ? val : parseFloat(val) || 0) : 0;
                 };
                 return {
                     序号: index + 1,
-                    用户工号: String(row[0] || '').trim(),
-                    用户姓名: String(row[1] || '').trim(),
-                    组织名称: String(row[2] || '').trim(),
-                    组织全链路名称: String(row[3] || '').trim(),
-                    总积分: getValue(4),
-                    招小影: getValue(5),
-                    爱写作: getValue(6),
-                    会议助理: getValue(7),
-                    工作清单: getValue(8),
-                    人资小i: getValue(9),
-                    商道积分: getValue(10)
+                    用户工号: String(row[userCodeIndex] || '').trim(),
+                    用户姓名: String(row[userNameIndex] || '').trim(),
+                    组织名称: String(row[orgNameIndex] || '').trim(),
+                    组织全链路名称: String(row[orgFullLinkIndex] || '').trim(),
+                    总积分: getValue(totalPointsIndex),
+                    招小影: getValue(zhaoIndex),
+                    爱写作: getValue(aiIndex),
+                    会议助理: getValue(meetingIndex),
+                    工作清单: getValue(workIndex),
+                    人资小i: getValue(hrIndex),
+                    商道积分: getValue(businessIndex)
                 };
             }).filter(item => item.组织名称 && item.用户姓名);
-            
+
             // 如果有基础数据，应用过滤和修正
             if (Object.keys(baseUserData).length > 0) {
                 processDataWithBaseData();
@@ -720,9 +773,12 @@
 
         function getCompleteUserData() {
             const result = [];
-            
+
             Object.keys(baseUserData).forEach(userCode => {
                 const user = baseUserData[userCode];
+                // 过滤掉"公司领导"组织
+                if (!user || user.组织名称 === '公司领导') return;
+
                 const existingData = allData.find(item => item.用户工号 === userCode);
                 if (existingData) {
                     result.push({
@@ -745,7 +801,7 @@
                     });
                 }
             });
-            
+
             return result.sort((a, b) => {
                 if (a.组织名称 !== b.组织名称) {
                     return a.组织名称.localeCompare(b.组织名称);
@@ -972,9 +1028,15 @@
                         updateDataCutoffDate();
                     }
                     
-                    // 恢复基础数据（兼容旧数据格式）
+                    // 恢复基础数据（兼容旧数据格式），并过滤掉"公司领导"
                     if (data.base_data && typeof data.base_data === 'object') {
-                        baseUserData = data.base_data;
+                        const rawBase = data.base_data;
+                        baseUserData = {};
+                        Object.keys(rawBase).forEach(code => {
+                            if (rawBase[code] && rawBase[code].组织名称 !== '公司领导') {
+                                baseUserData[code] = rawBase[code];
+                            }
+                        });
                         console.log('Loaded base user data from cloud:', Object.keys(baseUserData).length, 'records');
                     }
                     
@@ -1015,11 +1077,17 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // 先加载基础数据
+            // 先加载基础数据，过滤掉"公司领导"
             const savedBaseData = localStorage.getItem('baseUserData');
             if (savedBaseData) {
                 try {
-                    baseUserData = JSON.parse(savedBaseData);
+                    const rawBase = JSON.parse(savedBaseData);
+                    baseUserData = {};
+                    Object.keys(rawBase).forEach(code => {
+                        if (rawBase[code] && rawBase[code].组织名称 !== '公司领导') {
+                            baseUserData[code] = rawBase[code];
+                        }
+                    });
                     console.log('Loaded base user data:', Object.keys(baseUserData).length, 'records');
                 } catch (e) {
                     console.error('Failed to load base user data:', e);
