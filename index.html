@@ -68,9 +68,13 @@
                                 <h2 class="text-xl font-bold text-gray-900">组织积分总览</h2>
                                 <p class="text-sm text-gray-500 mt-1">点击组织名称可查看该组织下所有用户明细</p>
                             </div>
-                            <div class="flex items-center space-x-8">
+                            <div class="flex items-center space-x-4">
                                 <div id="dataCutoffDate" class="text-base font-bold text-red-600"></div>
                                 <div class="text-sm text-gray-500">共 <span id="orgCount" class="font-semibold text-gray-900">0</span> 个组织</div>
+                                <button onclick="exportOverviewImage()" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center space-x-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    <span>导出图片</span>
+                                </button>
                             </div>
                         </div>
                     </div>
