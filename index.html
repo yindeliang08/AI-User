@@ -59,33 +59,34 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <!-- Overview Page -->
         <div id="overviewPage" class="fade-in">
-            <div id="overviewHeader" class="sticky top-16 bg-white/95 backdrop-blur-sm z-20 border-b border-gray-200 mb-4">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center space-x-4">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4 flex justify-end">
+                <button onclick="exportOverviewImage()" class="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center space-x-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-4.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span>导出图片</span>
+                </button>
+            </div>
+            <div id="overviewContent" class="bg-white">
+                <div class="border-b border-gray-200 py-4">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div class="flex justify-between items-center">
                             <div>
-                                <h2 class="text-2xl font-bold text-gray-900">组织积分总览</h2>
+                                <h2 class="text-xl font-bold text-gray-900">组织积分总览</h2>
                                 <p class="text-sm text-gray-500 mt-1">点击组织名称可查看该组织下所有用户明细</p>
                             </div>
-                            <span id="dataCutoffDate" class="text-base font-bold text-red-600"></span>
-                        </div>
-                        <div class="flex items-center space-x-3">
-                            <span class="text-sm text-gray-500">共 <span id="orgCount" class="font-semibold text-gray-900">0</span> 个组织</span>
-                            <button onclick="exportOverviewImage()" class="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center space-x-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                <span>导出图片</span>
-                            </button>
+                            <div class="flex items-center space-x-8">
+                                <span id="dataCutoffDate" class="text-base font-bold text-red-600"></span>
+                                <span class="text-sm text-gray-500">共 <span id="orgCount" class="font-semibold text-gray-900">0</span> 个组织</span>
+                            </div>
                         </div>
                     </div>
-                    <div id="companyStats" class="mt-4"></div>
                 </div>
-            </div>
-            <div class="bg-yellow-100 border-yellow-300 text-red-600 px-4 py-3 mb-4 max-w-7xl mx-auto rounded-lg text-center font-medium">
-                ⚠️ 目前统计范围为在编员工，集团尚未明确后续是否增加外包、物业人员，建议先行全范围推广
-            </div>
-            <div id="overviewContent" class="bg-gray-50">
-                <div id="summaryCards" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6"></div>
-                <div id="orgGrid" class=""></div>
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+                    <div class="bg-yellow-100 text-red-600 px-4 py-3 rounded-lg text-center font-medium mb-4">
+                        ⚠️ 目前统计范围为在编员工，集团尚未明确后续是否增加外包、物业人员，建议先行全范围推广
+                    </div>
+                    <div id="companyStats" class="mb-4"></div>
+                    <div id="orgGrid" class="space-y-2 pb-6"></div>
+                </div>
             </div>
             <div id="overviewEmpty" class="text-center py-20">
                 <div class="text-6xl mb-4">📂</div>
@@ -540,7 +541,7 @@
             allData.forEach(item => {
                 const org = item.组织名称;
                 if (!orgSummary[org]) {
-                    orgSummary[org] = { 组织名称: org, 用户数: 0, 组织总人数: 0, 招小影: 0, 爱写作: 0, 会议助理: 0, 工作清单: 0, 人资小i: 0, 商道积分: 0, 总积分: 0 };
+                    orgSummary[org] = { 组织名称: org, 用户数: 0, 组织总人数: 0, 完成人数: 0, 招小影: 0, 爱写作: 0, 会议助理: 0, 工作清单: 0, 人资小i: 0, 商道积分: 0, 总积分: 0 };
                 }
                 orgSummary[org].用户数++;
                 orgSummary[org].招小影 += item.招小影;
@@ -571,12 +572,13 @@
                 orgSummary[org].商道积分 = Math.round(orgSummary[org].商道积分 / totalUsers * 10) / 10;
                 orgSummary[org].总积分 = Math.round(orgSummary[org].总积分 / totalUsers * 10) / 10;
                 
-                // 计算完成覆盖率（所有工具都有数据的人数/组织总人数）
+                // 计算完成人数和覆盖率（所有工具都有数据的人数）
                 const orgData = allData.filter(item => item.组织名称 === org);
                 const completedCount = orgData.filter(item => 
                     item.招小影 > 0 && item.爱写作 > 0 && item.会议助理 > 0 && 
                     item.工作清单 > 0 && item.人资小i > 0 && item.商道积分 > 0
                 ).length;
+                orgSummary[org].完成人数 = completedCount;
                 orgSummary[org].覆盖率 = Math.round(completedCount / totalUsers * 100);
             });
         }
@@ -630,29 +632,29 @@
 
         function renderOverview() {
             const orgGrid = document.getElementById('orgGrid');
-            const summaryCards = document.getElementById('summaryCards');
             const emptyState = document.getElementById('overviewEmpty');
             const orgCount = document.getElementById('orgCount');
             const companyStats = document.getElementById('companyStats');
 
             if (allData.length === 0) {
                 orgGrid.innerHTML = '';
-                summaryCards.innerHTML = '';
                 companyStats.innerHTML = '';
                 emptyState.classList.remove('hidden');
+                document.getElementById('overviewContent').classList.add('hidden');
                 return;
             }
 
             emptyState.classList.add('hidden');
+            document.getElementById('overviewContent').classList.remove('hidden');
             const orgs = Object.values(orgSummary).sort((a, b) => b.总积分 - a.总积分);
             orgCount.textContent = orgs.length;
 
             const companyAvg = calculateCompanyAverage();
-            
-            // 渲染深圳公司统计卡片到固定区域
+
+            // 渲染深圳公司统计卡片（深蓝色样式）
             if (companyAvg) {
                 companyStats.innerHTML = `
-                    <div class="bg-blue-800 rounded-xl p-5">
+                    <div class="bg-blue-800 rounded-xl p-5 mb-4">
                         <div class="flex items-center space-x-3 mb-4">
                             <div class="flex-shrink-0">
                                 <div class="flex items-center justify-center w-10 h-10 bg-blue-700 rounded-lg">
@@ -664,7 +666,7 @@
                                 <p class="text-white/70 text-sm">${companyAvg.总人数}位员工（${companyAvg.有数据人数}人有数据，其中${companyAvg.完成人数}人已完成） <span class="text-red-400 font-bold">覆盖率: ${companyAvg.覆盖率}%</span></p>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center">
                             <div class="flex-1 flex items-center justify-around">
                                 <div class="text-center">
@@ -692,7 +694,7 @@
                                     <div class="text-xs text-white/60">商道积分</div>
                                 </div>
                             </div>
-                            
+
                             <div class="flex items-center pl-6 border-l border-white/20">
                                 <div class="text-center">
                                     <div class="text-3xl font-bold text-white">${companyAvg.总积分}</div>
@@ -706,35 +708,26 @@
                 companyStats.innerHTML = '';
             }
 
+            // 渲染组织卡片（带皇冠/奖牌，完成人数，红色覆盖率）
+            const medals = ['👑', '🥈', '🥉'];
             let content = '';
 
-            content += orgs.map((org, index) => {
-                const crownIcons = ['👑', '🥈', '🥉'];
-                const isTop3 = index < 3;
-                
-                // 计算完成人数
-                const orgData = allData.filter(item => item.组织名称 === org.组织名称);
-                const completedCount = orgData.filter(item =>
-                    item.招小影 > 0 && item.爱写作 > 0 && item.会议助理 > 0 &&
-                    item.工作清单 > 0 && item.人资小i > 0 && item.商道积分 > 0
-                ).length;
-                
-                return `
+            content += orgs.map((org, index) => `
                 <div class="org-card bg-white rounded-lg border border-gray-200 p-4 flex items-center" onclick="viewOrgDetail('${org.组织名称}')">
                     <div class="flex items-center space-x-3">
                         <div class="flex-shrink-0 relative">
-                            <div class="flex items-center justify-center w-10 h-10 ${isTop3 ? 'bg-yellow-100' : 'bg-blue-100'} rounded-lg">
-                                <span class="text-lg font-bold ${isTop3 ? 'text-yellow-600' : 'text-blue-600'}">${index + 1}</span>
+                            <div class="flex items-center justify-center w-10 h-10 ${index < 3 ? 'bg-yellow-100' : 'bg-blue-100'} rounded-lg">
+                                <span class="text-lg font-bold ${index < 3 ? 'text-yellow-600' : 'text-blue-600'}">${index + 1}</span>
                             </div>
-                            ${isTop3 ? `<span class="absolute -top-1 -right-1 text-lg">${crownIcons[index]}</span>` : ''}
+                            ${index < 3 ? `<span class="absolute -top-1 -right-1 text-lg">${medals[index]}</span>` : ''}
                         </div>
-                        <div class="flex-1">
+                        <div class="flex-1 min-w-[200px]">
                             <h3 class="font-bold text-gray-900 text-base">${org.组织名称}</h3>
-                            <p class="text-sm text-gray-500">${org.组织总人数}位员工（${org.用户数}人有数据，其中${completedCount}人已完成）<span class="text-red-600 font-bold">覆盖率: ${org.覆盖率}%</span></p>
+                            <p class="text-sm text-gray-500">${org.组织总人数}位员工（${org.用户数}人有数据，其中${org.完成人数}人已完成） <span class="text-red-600 font-bold">覆盖率: ${org.覆盖率}%</span></p>
                         </div>
                     </div>
-                    
-                    <div class="flex-1 flex items-center justify-around mx-8">
+
+                    <div class="flex-1 flex items-center justify-around mx-4">
                         <div class="text-center">
                             <div class="font-semibold text-gray-700">${org.招小影}</div>
                             <div class="text-xs text-gray-500">招小影</div>
@@ -760,7 +753,7 @@
                             <div class="text-xs text-gray-500">商道积分</div>
                         </div>
                     </div>
-                    
+
                     <div class="flex items-center pl-6 border-l border-gray-200">
                         <div class="text-center">
                             <div class="text-2xl font-bold text-blue-600">${org.总积分}</div>
@@ -768,10 +761,8 @@
                         </div>
                     </div>
                 </div>
-                `;
-            }).join('');
+            `).join('');
 
-            orgGrid.className = 'space-y-2';
             orgGrid.innerHTML = content;
         }
 
@@ -806,7 +797,12 @@
                 }
             });
 
-            return result.sort((a, b) => b.总积分 - a.总积分);
+            return result.sort((a, b) => {
+                if (a.组织名称 !== b.组织名称) {
+                    return a.组织名称.localeCompare(b.组织名称);
+                }
+                return a.用户工号.localeCompare(b.用户工号);
+            });
         }
 
         function renderDetailTable(data = null) {
@@ -820,7 +816,12 @@
             } else if (Object.keys(baseUserData).length > 0) {
                 displayData = getCompleteUserData();
             } else {
-                displayData = [...allData].sort((a, b) => b.总积分 - a.总积分);
+                displayData = [...allData].sort((a, b) => {
+                    if (a.组织名称 !== b.组织名称) {
+                        return a.组织名称.localeCompare(b.组织名称);
+                    }
+                    return a.用户工号.localeCompare(b.用户工号);
+                });
             }
             
             countSpan.textContent = displayData.length;
@@ -833,9 +834,10 @@
 
             emptyState.classList.add('hidden');
             
-            let globalIndex = 0;
+            let orgCounter = {};
             tbody.innerHTML = displayData.map((item) => {
-                globalIndex++;
+                const org = item.组织名称;
+                orgCounter[org] = (orgCounter[org] || 0) + 1;
                 
                 const hasAllData = item.招小影 > 0 && item.爱写作 > 0 && item.会议助理 > 0 && 
                                    item.工作清单 > 0 && item.人资小i > 0 && item.商道积分 > 0;
@@ -845,7 +847,7 @@
 
                 return `
                     <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-4 py-3 text-gray-500" style="width: 80px;">${globalIndex}</td>
+                        <td class="px-4 py-3 text-gray-500" style="width: 80px;">${orgCounter[org]}</td>
                         <td class="px-4 py-3 font-medium text-gray-900" style="width: 180px;">${item.组织名称}</td>
                         <td class="px-4 py-3 text-gray-700" style="width: 100px;">${item.用户姓名}</td>
                         <td class="px-4 py-3 text-gray-500 font-mono text-xs" style="width: 120px;">${item.用户工号}</td>
@@ -877,14 +879,16 @@
             if (Object.keys(baseUserData).length > 0) {
                 displayData = getCompleteUserData();
             } else {
-                displayData = [...allData].sort((a, b) => b.总积分 - a.总积分);
+                displayData = [...allData].sort((a, b) => {
+                    if (a.组织名称 !== b.组织名称) {
+                        return a.组织名称.localeCompare(b.组织名称);
+                    }
+                    return a.用户工号.localeCompare(b.用户工号);
+                });
             }
             
             if (org) displayData = displayData.filter(d => d.组织名称 === org);
             if (search) displayData = displayData.filter(d => d.用户姓名.toLowerCase().includes(search) || d.用户工号.toLowerCase().includes(search));
-            
-            // 确保筛选后的数据按总积分排序
-            displayData.sort((a, b) => b.总积分 - a.总积分);
             
             // 保存筛选后的数据，用于导出
             currentFilteredData = displayData;
